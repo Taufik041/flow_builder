@@ -1,0 +1,132 @@
+{
+    "id": "temp",
+    "title": "temp",
+    "terminal": true,
+    "data": {
+        "reqd": {
+            "type": "boolean",
+            "__example__": false
+        },
+        "meta_data": {
+            "type": "object",
+            "__example__": {}
+        },
+        "Applicant_Name": {
+            "type": "string",
+            "__example__": ""
+        },
+        "Mobile_Number": {
+            "type": "string",
+            "__example__": ""
+        },
+        "E-Mail": {
+            "type": "string",
+            "__example__": ""
+        },
+        "Select_Type_Of_Organization": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    }
+                }
+            },
+            "__example__": []
+        },
+        "Select_Type_Of_Organization_init": {
+            "type": "string",
+            "__example__": ""
+        },
+        "Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    }
+                }
+            },
+            "__example__": []
+        },
+        "Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest_init": {
+            "type": "string",
+            "__example__": ""
+        }
+    },
+    "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+            {
+                "type": "TextInput",
+                "name": "Applicant_Name",
+                "label": "ଆବେଦନକାରୀଙ୍କ ନାମ",
+                "required": "${data.reqd}"
+            },
+            {
+                "type": "TextInput",
+                "name": "Mobile_Number",
+                "label": "ମୋବାଇଲ୍ ନମ୍ବର",
+                "required": "${data.reqd}"
+            },
+            {
+                "type": "TextInput",
+                "name": "E-Mail",
+                "label": "ଇମେଲ",
+                "required": "${data.reqd}"
+            },
+            {
+                "type": "Dropdown",
+                "name": "Select_Type_Of_Organization",
+                "required": "${data.reqd}",
+                "label": "ସଂସ୍ଥାର ପ୍ରକାର ବାଛନ୍ତୁ।",
+                "init-value": "${data.Select_Type_Of_Organization_init}",
+                "data-source": "${data.Select_Type_Of_Organization}",
+                "on-select-action": {
+                    "name": "data_exchange",
+                    "payload": {
+                        "trigger": "Select_Type_Of_Organization",
+                        "Select_Type_Of_Organization": "${form.Select_Type_Of_Organization}",
+                        "meta_data": "${data.meta_data}"
+                    }
+                }
+            },
+            {
+                "type": "Dropdown",
+                "name": "Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest",
+                "required": "${data.reqd}",
+                "label": "ସମ୍ମାନନୀୟ ରାଜ୍ୟପାଳ/ମୁଖ୍ୟମନ୍ତ୍ରୀଙ୍କୁ ମୁଖ୍ୟ ଅତିଥି ଭାବରେ ନିମନ୍ତ୍ରଣ କରାଯାଇଛି କି?",
+                "init-value": "${data.Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest_init}",
+                "data-source": "${data.Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest}",
+                "on-select-action": {
+                    "name": "data_exchange",
+                    "payload": {
+                        "trigger": "Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest",
+                        "Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest": "${form.Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest}",
+                        "meta_data": "${data.meta_data}"
+                    }
+                }
+            },
+            {
+                "type": "Footer",
+                "label": "Continue",
+                "on-click-action": {
+                    "name": "data_exchange",
+                    "payload": {
+                        "footer": "temp",
+                        "form": "${form}",
+                        "meta_data": "${data.meta_data}"
+                    }
+                }
+            }
+        ]
+    }
+}
