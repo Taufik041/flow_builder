@@ -49,7 +49,16 @@ class ComponentBuilder:
         
     def handle_textheading(self, key):
         self.data["layout"]["children"].append({"type": "TextHeading", "text": self.input[key]["name"]})
-
+    
+    def handle_textsubheading(self, key):
+        self.data["layout"]["children"].append({"type": "TextSubheading", "text": self.input[key]["name"]})
+    
+    def handle_textbody(self, key):
+        self.data["layout"]["children"].append({"type": "TextBody", "text": self.input[key]["name"]})
+    
+    def handle_textcaption(self, key):
+        self.data["layout"]["children"].append({"type": "TextCaption", "text": self.input[key]["name"]})
+    
     def handle_dropdown(self, key):  
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
@@ -170,6 +179,12 @@ class ComponentBuilder:
                 self.handle_textinput(key)
             elif "textheading" in item_type:
                 self.handle_textheading(key)
+            elif "textsubheading" in item_type:
+                self.handle_textsubheading(key)
+            elif "textbody" in item_type:
+                self.handle_textbody(key)
+            elif "textcaption" in item_type:
+                self.handle_textcaption(key)
             elif "dropdown" in item_type:
                 self.handle_dropdown(key)
             elif "textarea" in item_type:
@@ -181,29 +196,7 @@ class ComponentBuilder:
             else:
                 self.handle_default(key)
         return json.dumps(self.data["data"]), json.dumps(self.data["layout"]["children"])
-    # def build_flow(self):
-    #     self.build_component()
-    #     for key in self.input.keys():
-    #         item_type = key.lower()
-    #         if "id" in item_type or "title" in item_type:
-    #             continue
-    #         elif "textinput" in item_type:
-    #             self.handle_textinput(key)
-    #         elif "textheading" in item_type:
-    #             self.handle_textheading(key)
-    #         elif "dropdown" in item_type:
-    #             self.handle_dropdown(key)
-    #         elif "textarea" in item_type:
-    #             self.handle_textarea(key)
-    #         elif "checkboxgroup" in item_type:
-    #             self.handle_checkboxgroup(key)
-    #         elif "radiobuttonsgroup" in item_type:
-    #             self.handle_radiobuttonsgroup(key)
-    #         else:
-    #             self.handle_default(key)
-
-    #     return self.data, self.data["data"], self.data["layout"]["children"]
-
+    
 
 if __name__ == "__main__":
     input_data = {

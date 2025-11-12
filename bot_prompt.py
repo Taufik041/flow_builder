@@ -49,10 +49,11 @@ def extract_form_elements_from_image(
                         1. The type (textinput, textarea, dropdown, checkboxgroup, radiobuttonsgroup, etc.)
                         2. The label or placeholder text
 
-                        Return ONLY a valid JSON object with keys like "textinput1", "dropdown1", etc., and values as the label text.
+                        Return ONLY a valid JSON object with keys like "textinput1", "dropdown1", "textbody1", "radiobuttonsgroup1", "checkboxgroup1" etc., and values as the label text.
 
                         Example output format:
-                        {"textinput1": {"name": "Mobile Number", "required": true}, "textinput2": {"name": "PAN", "required": false}, "dropdown1": {"name": "Gender", "required": true}, "dropdown2": {"name": "District", "required": true}, "textinput3": {"name": "Pincode", "required": false}}
+                        {"textinput1": {"name": "Mobile Number", "required": true}, "textinput2": {"name": "PAN", "required": false}, "dropdown1": {"name": "Gender", "required": true}, "dropdown2": {"name": "District", "required": true}, "textinput3": {"name": "Pincode", "required": false}
+                        "checkboxgroup1":{}}
 
                         Do not include any markdown formatting, backticks, or explanatory text. Return only the raw JSON object.
                         """
