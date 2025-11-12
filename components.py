@@ -96,6 +96,31 @@ class ComponentBuilder:
         self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
 
+    def handle_optin(self, key):  
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        reqd_tf = self.input[key]["required"]
+        translate_tf = self.input[key]["translate"]
+        body = {"type": "OptIn","name": name}
+        if reqd_tf:
+            body["required"] = "${data.reqd}"
+        
+        if translate_tf == "en-IN":
+            body["label"] = name_original
+        else:
+            label = sarvam_translate(name_original, translate_tf)
+            body["label"] = label
+        body["on-select-action"] = {
+                "name": "data_exchange",
+                "payload": {
+                    "trigger": name,
+                    name: f"${{form.{name}}}",
+                    "meta_data": "${data.meta_data}"
+                }
+            }
+        self.data["layout"]["children"].append(body)
+
+
     def handle_textarea(self, key):
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
@@ -193,6 +218,8 @@ class ComponentBuilder:
                 self.handle_checkboxgroup(key)
             elif "radiobuttonsgroup" in item_type:
                 self.handle_radiobuttonsgroup(key)
+            elif "optin" in item_type:
+                self.handle_optin(key)
             else:
                 self.handle_default(key)
         return json.dumps(self.data["data"]), json.dumps(self.data["layout"]["children"])
