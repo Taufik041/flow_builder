@@ -32,6 +32,12 @@ async def upload_image(file: UploadFile, options: LanguageOptions = Query(Langua
     with open("output_flow.json", "w", encoding="utf-8") as f:
         f.write(screen_json)
     
+    for _f in ("output_flow.json", "temp_image.png"):
+        try:
+            if os.path.exists(_f):
+                os.remove(_f)
+        except Exception:
+            pass
     # return screen_json
     return JSONResponse(content=json.loads(screen_json))
 
