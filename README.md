@@ -61,25 +61,25 @@ uv run main.py
 > Please look-out for merge conflicts.
 
 
-- [x] Basic Text(https://developers.facebook.com/docs/whatsapp/flows/reference/components#text)
-    - [x] Heading
-    - [x] Subheading
-    - [x] Caption
-    - [x] Body
-- [ ] RichText
-- [x] TextEntry
-- [x] CheckboxGroup
-- [x] RadioButtonsGroup
-- [x] Footer
-- [ ] OptIn
-- [x] Dropdown
-- [ ] EmbeddedLink
-- [ ] DatePicker
-- [ ] CalendarPicker
-- [ ] Image
-- [ ] If
-- [ ] Switch
-- [ ] Media upload
-- [ ] NavigationList
-- [ ] Chips Selector
-- [ ] Image Carousel
+- [x] [Basic Text](https://developers.facebook.com/docs/whatsapp/flows/reference/components#text)
+    - [x] [Heading](https://developers.facebook.com/docs/whatsapp/flows/reference/components#text)
+    - [x] [Subheading](https://developers.facebook.com/docs/whatsapp/flows/reference/components#text)
+    - [x] [Caption](https://developers.facebook.com/docs/whatsapp/flows/reference/components#text)
+    - [x] [Body](https://developers.facebook.com/docs/whatsapp/flows/reference/components#text)
+- [ ] [RichText](https://developers.facebook.com/docs/whatsapp/flows/reference/components#richtext)
+- [x] [TextEntry](https://developers.facebook.com/docs/whatsapp/flows/reference/components#textentry)
+- [x] [CheckboxGroup](https://developers.facebook.com/docs/whatsapp/flows/reference/components#checkbox)
+- [x] [RadioButtonsGroup](https://developers.facebook.com/docs/whatsapp/flows/reference/components#radio)
+- [x] [Footer](https://developers.facebook.com/docs/whatsapp/flows/reference/components#foot)
+- [ ] [OptIn](https://developers.facebook.com/docs/whatsapp/flows/reference/components#opt)
+- [x] [Dropdown](https://developers.facebook.com/docs/whatsapp/flows/reference/components#drop)
+- [ ] [EmbeddedLink](https://developers.facebook.com/docs/whatsapp/flows/reference/components#embed)
+- [ ] [DatePicker](https://developers.facebook.com/docs/whatsapp/flows/reference/components#dp)
+- [ ] [CalendarPicker](https://developers.facebook.com/docs/whatsapp/flows/reference/components#calendarpicker)
+- [ ] [Image](https://developers.facebook.com/docs/whatsapp/flows/reference/components#img)
+- [ ] [If](https://developers.facebook.com/docs/whatsapp/flows/reference/components#if)
+- [ ] [Switch](https://developers.facebook.com/docs/whatsapp/flows/reference/components#switch)
+- [ ] [Media-upload](https://developers.facebook.com/docs/whatsapp/flows/reference/components#media_upload)
+- [ ] [NavigationList](https://developers.facebook.com/docs/whatsapp/flows/reference/components#navlist)
+- [ ] [Chips-Selector](https://developers.facebook.com/docs/whatsapp/flows/reference/components#chips_selector)
+- [ ] [Image-Carousel](https://developers.facebook.com/docs/whatsapp/flows/reference/components#image_carousel)
