@@ -40,8 +40,10 @@ uv run main.py
 ```
 
 
-> Please visit *[here]*(https://flows.taufikkhan.me) to use the flow builder(currently unavailable)
-> Components for **Whatsapp** can be found [here](https://developers.facebook.com/docs/whatsapp/flows/reference/components "Meta Components")
+> Please visit [here](https://flows.taufikkhan.me) to use the flow builder(currently unavailable)  
+
+> Components for **Whatsapp** can be found [here](https://developers.facebook.com/docs/whatsapp/flows/reference/components "Meta Components")  
+
 > [!NOTE]
 > Please refer to the [README](https://github.com/Taufik041/flow_builder/blob/main/README.md) file to setup the flow builder.
 > You will need a openai api key and sarvam api key to run the backend independently.
