@@ -34,7 +34,7 @@ class ComponentBuilder:
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
-        body = {"type": "TextInput", "name": name}
+        body = {"type": "TextInput", "name": name, "visible": f"${{data.{name}_visible}}"}
 
         if translate_tf == "en-IN":
             body["label"] = name_original
@@ -43,28 +43,43 @@ class ComponentBuilder:
             body["label"] = label
         if reqd_tf:
             body["required"] = "${data.reqd}"
-
+        
+        body["init-value"] = f"${{data.{name}_init}}"
+        self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["data"][name] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
         
     def handle_textheading(self, key):
-        self.data["layout"]["children"].append({"type": "TextHeading", "text": self.input[key]["name"]})
-    
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
+        self.data["layout"]["children"].append({"type": "TextHeading", "text": name_original, "visible": f"${{data.{name}_visible}}"})
+
     def handle_textsubheading(self, key):
-        self.data["layout"]["children"].append({"type": "TextSubheading", "text": self.input[key]["name"]})
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
+        self.data["layout"]["children"].append({"type": "TextSubheading", "text": name_original, "visible": f"${{data.{name}_visible}}"})
     
     def handle_textbody(self, key):
-        self.data["layout"]["children"].append({"type": "TextBody", "text": self.input[key]["name"]})
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
+        self.data["layout"]["children"].append({"type": "TextBody", "text": name_original, "visible": f"${{data.{name}_visible}}"})
     
     def handle_textcaption(self, key):
-        self.data["layout"]["children"].append({"type": "TextCaption", "text": self.input[key]["name"]})
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
+        self.data["layout"]["children"].append({"type": "TextCaption", "text": name_original, "visible": f"${{data.{name}_visible}}"})
     
     def handle_dropdown(self, key):  
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
-        body = {"type": "Dropdown","name": name}
+        body = {"type": "Dropdown","name": name, "visible": f"${{data.{name}_visible}}"}
         
         if reqd_tf:
             body["required"] = "${data.reqd}"
@@ -93,6 +108,7 @@ class ComponentBuilder:
             },
             "__example__": []
         }                
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
 
@@ -101,7 +117,7 @@ class ComponentBuilder:
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
-        body = {"type": "OptIn","name": name}
+        body = {"type": "OptIn","name": name, "visible": f"${{data.{name}_visible}}"}
         if reqd_tf:
             body["required"] = "${data.reqd}"
         
@@ -118,6 +134,7 @@ class ComponentBuilder:
                     "meta_data": "${data.meta_data}"
                 }
             }
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["layout"]["children"].append(body)
 
 
@@ -126,7 +143,7 @@ class ComponentBuilder:
         name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
-        body = {"type": "TextArea", "name": name}
+        body = {"type": "TextArea", "name": name, "visible": f"${{data.{name}_visible}}"}
 
         if reqd_tf:
             body["required"] = "${data.reqd}"
@@ -135,7 +152,10 @@ class ComponentBuilder:
         else:
             label = sarvam_translate(name_original, translate_tf)
             body["label"] = label
-        
+
+        body["init-value"] = f"${{data.{name}_init}}"
+        self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["data"][name] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
 
@@ -145,7 +165,7 @@ class ComponentBuilder:
         name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
-        body = {"type": "CheckboxGroup", "name": name, "data-source": f"${{data.{name}}}"}
+        body = {"type": "CheckboxGroup", "name": name, "data-source": f"${{data.{name}}}", "visible": f"${{data.{name}_visible}}"}
         
         if reqd_tf:
             body["required"] = "${data.reqd}"
@@ -154,7 +174,10 @@ class ComponentBuilder:
         else:
             label = sarvam_translate(name_original, translate_tf)
             body["label"] = label
-        
+
+        body["init-value"] = f"${{data.{name}_init}}"
+        self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["data"][name] = {
             "type": "array",
             "items": {
@@ -171,7 +194,7 @@ class ComponentBuilder:
         name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
-        body = {"type": "RadioButtonsGroup", "name": name, "data-source": f"${{data.{name}}}"}
+        body = {"type": "RadioButtonsGroup", "name": name, "data-source": f"${{data.{name}}}", "visible": f"${{data.{name}_visible}}"}
         
         if reqd_tf:
             body["required"] = "${data.reqd}"
@@ -180,7 +203,10 @@ class ComponentBuilder:
         else:
             label = sarvam_translate(name_original, translate_tf)
             body["label"] = label
-
+            
+        body["init-value"] = f"${{data.{name}_init}}"
+        self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["data"][name] = {
             "type": "array",
             "items": {
