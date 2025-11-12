@@ -1,14 +1,11 @@
-from fastapi import FastAPI, UploadFile, Query
+from fastapi import FastAPI, UploadFile
 from fastapi.responses import JSONResponse
-from bot import extract_form_elements_from_image
-from flow import ScreenBuilder
+from bot_prompt import process_image_and_prompt
+from screen import ScreenBuilder
+from components import ComponentBuilder
 import json, os
-from enum import Enum
-
-class LanguageOptions(str, Enum):
-    ENGLISH = "en-IN"
-    HINDI = "hi-IN"
-    ODIYA = "od-IN"
+from typing import Optional
+from json_modifications import modify_json
 
 app = FastAPI()
 
@@ -17,29 +14,35 @@ async def read_root():
     return {"Hello": "World"}
 
 @app.post("/upload-image/")
-async def upload_image(file: UploadFile, options: LanguageOptions = Query(LanguageOptions.ENGLISH)):
+async def upload_image(file: Optional[UploadFile] = None, prompt: Optional[str] = None):
     API_KEY: str = os.getenv("OPENAI_API_KEY") or ""
-    with open("temp_image.png", "wb") as buffer:
-        buffer.write(await file.read())
-    data = options
-    language = data.replace("_", "-")
-    result = json.loads(extract_form_elements_from_image("temp_image.png", API_KEY))
-    for key, value in result.items():
-        result[key]["translate"] = language
-    screen_builder = ScreenBuilder(result)
-    screen_json = screen_builder.build_flow()
-    
-    with open("output_flow.json", "w", encoding="utf-8") as f:
-        f.write(screen_json)
-    
-    for _f in ("output_flow.json", "temp_image.png"):
-        try:
-            if os.path.exists(_f):
-                os.remove(_f)
-        except Exception:
-            pass
-    # return screen_json
-    return JSONResponse(content=json.loads(screen_json))
+    if file is None:
+        image = None
+    else:
+        with open("temp_image.png", "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+    try:
+        result = json.loads(process_image_and_prompt("temp_image.png" if file is not None else None, prompt, API_KEY))
+        result = json.loads(modify_json(result))
+        
+        if result["type"].lower() == "screen":
+            builder = ScreenBuilder(result["image"], result["screen_name"] if "screen_name" in result else "Default Screen")
+            screen_json = builder.build_screen()
+            return JSONResponse(content=json.loads(screen_json))
+        
+        elif result["type"].lower() == "components":
+            builder = ComponentBuilder(result["image"])
+            data_json, layout_children = builder.build_component()
+            final_result = {
+                "data": json.loads(data_json),
+                "children": json.loads(layout_children)
+            }
+            return JSONResponse(content=final_result)
+        
+    except Exception as e:
+        import traceback; traceback.print_exc();
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 if __name__ == "__main__":
