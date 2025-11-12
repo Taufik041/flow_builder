@@ -9,15 +9,15 @@ client = SarvamAI(
 )
 
 def sarvam_translate(text: str, language: str) -> str:
-    response = client.text.translate(
-        input=text,
-        source_language_code="en-IN",
-        target_language_code=language,
-        speaker_gender="Male"
-    )
-    response = dict(response)
-    return str(response["translated_text"])
-
+    # response = client.text.translate(
+    #     input=text,
+    #     source_language_code="en-IN",
+    #     target_language_code=language,
+    #     speaker_gender="Male"
+    # )
+    # response = dict(response)
+    # return str(response["translated_text"])
+    return ""
 class ScreenBuilder:
     def __init__(self, input_data: dict):
         self.input = input_data
@@ -227,7 +227,7 @@ if __name__ == "__main__":
         "dropdown1": {
             "name": "Select Type Of Organization",
             "required": True,
-            "translate": "od-IN"
+            "translate": "en-IN"
         },
         "textinput1": {
             "name": "Applicant Name",
@@ -247,8 +247,22 @@ if __name__ == "__main__":
         "dropdown2": {
             "name": "Whether Hon'ble Governor/Chief Minister is invited as Chief Guest",
             "required": True,
-            "translate": "od-IN"
-        }
+            "translate": "en-IN"
+        },
+        "radiobuttonsgroup1":{
+            "name":"R1",
+            "required": False,
+            "translate":"en-IN",
+            "options": ["Yes", "No"]
+        },
+        
+        "checkboxgroup1":{
+            "name":"R2",
+            "translate":"en-IN",
+            "required": False,
+            "options": ["Yes", "No"]
+        },
+        
     }
     builder = ScreenBuilder(input_data)
     screen_json = builder.build_flow()
