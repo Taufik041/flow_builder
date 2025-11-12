@@ -18,39 +18,14 @@ def sarvam_translate(text: str, language: str) -> str:
     response = dict(response)
     return str(response["translated_text"])
 
-class ScreenBuilder:
+class ComponentBuilder:
     def __init__(self, input_data: dict):
         self.input = input_data
         self.data = {
-            "id": "",
-            "title": "",
-            "terminal": True,
-            "data": {
-                "reqd": {
-                    "type": "boolean",
-                    "__example__": False
-                },
-                "meta_data": {
-                    "type": "object",
-                    "__example__": {}
-                }
-            },
+            "data": {},
             "layout": {
                 "type": "SingleColumnLayout",
-                "children": [
-                    {
-                        "type": "Footer",
-                        "label": "Continue",
-                        "on-click-action": {
-                            "name": "data_exchange",
-                            "payload": {
-                                "footer": self.input.get("id", "temp"),
-                                "form": "${form}",
-                                "meta_data": "${data.meta_data}"
-                            }
-                        }
-                    }
-                ]
+                "children": []
             }
         }
 
@@ -129,14 +104,7 @@ class ScreenBuilder:
         
         self.data["data"][name] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
-        # if reqd_tf:
-        #     self.data["layout"]["children"].append(
-        #         {"type": "TextArea", "label": self.input[key]["name"], "name": name, "required": "${data.reqd}"}
-        #     )
-        # else:
-        #     self.data["layout"]["children"].append(
-        #         {"type": "TextArea", "label": self.input[key]["name"], "name": name}
-        #     )
+
 
     def handle_checkboxgroup(self, key):
         name_original = self.input[key]["name"]
@@ -162,6 +130,7 @@ class ScreenBuilder:
             "__example__": [{"id": value,"title": value} for value in self.input[key]["options"]]
         }
         self.data["layout"]["children"].append(body)
+        
             
     def handle_radiobuttonsgroup(self, key):
         name_original = self.input[key]["name"]
@@ -187,14 +156,12 @@ class ScreenBuilder:
             "__example__": [{"id": value,"title": value} for value in self.input[key]["options"]]
         }
         self.data["layout"]["children"].append(body)
+    
         
     def handle_default(self, key):
         self.data["layout"]["children"].append({"type": "TextHeading", "text": self.input[key]["name"]})
 
-    def build_flow(self):
-        self.data["id"] = self.input.get("id", "temp")
-        self.data["title"] = self.input.get("title", "temp")
-
+    def build_component(self):
         for key in self.input.keys():
             item_type = key.lower()
             if "id" in item_type or "title" in item_type:
@@ -213,13 +180,29 @@ class ScreenBuilder:
                 self.handle_radiobuttonsgroup(key)
             else:
                 self.handle_default(key)
+        return json.dumps(self.data["data"]), json.dumps(self.data["layout"]["children"])
+    # def build_flow(self):
+    #     self.build_component()
+    #     for key in self.input.keys():
+    #         item_type = key.lower()
+    #         if "id" in item_type or "title" in item_type:
+    #             continue
+    #         elif "textinput" in item_type:
+    #             self.handle_textinput(key)
+    #         elif "textheading" in item_type:
+    #             self.handle_textheading(key)
+    #         elif "dropdown" in item_type:
+    #             self.handle_dropdown(key)
+    #         elif "textarea" in item_type:
+    #             self.handle_textarea(key)
+    #         elif "checkboxgroup" in item_type:
+    #             self.handle_checkboxgroup(key)
+    #         elif "radiobuttonsgroup" in item_type:
+    #             self.handle_radiobuttonsgroup(key)
+    #         else:
+    #             self.handle_default(key)
 
-        # move Footer to end
-        swap_data = self.data["layout"]["children"]
-        swap_data.append(swap_data.pop(0))
-        self.data["layout"]["children"] = swap_data
-
-        return json.dumps(self.data, ensure_ascii=False, indent=4)
+    #     return self.data, self.data["data"], self.data["layout"]["children"]
 
 
 if __name__ == "__main__":
@@ -227,7 +210,7 @@ if __name__ == "__main__":
         "dropdown1": {
             "name": "Select Type Of Organization",
             "required": True,
-            "translate": "od-IN"
+            "translate": "en-IN"
         },
         "textinput1": {
             "name": "Applicant Name",
@@ -247,13 +230,17 @@ if __name__ == "__main__":
         "dropdown2": {
             "name": "Whether Hon'ble Governor/Chief Minister is invited as Chief Guest",
             "required": True,
-            "translate": "od-IN"
+            "translate": "en-IN"
         }
     }
-    builder = ScreenBuilder(input_data)
-    screen_json = builder.build_flow()
-    with open("output_flow.json", "w", encoding="utf-8") as f:
-        f.write(screen_json)
+    builder = ComponentBuilder(input_data)
+    data_json, layout_children = builder.build_component()
+    # with open("output_flow.json", "w", encoding="utf-8") as f:
+    #     f.write(screen_json)
+    
     print("***********************************************************************")
-    print(screen_json)
+    print(data_json)
     print("***********************************************************************")
+    print(layout_children)
+    print("***********************************************************************")
+    
