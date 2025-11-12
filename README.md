@@ -71,7 +71,7 @@ uv run main.py
 - [x] [CheckboxGroup](https://developers.facebook.com/docs/whatsapp/flows/reference/components#checkbox)
 - [x] [RadioButtonsGroup](https://developers.facebook.com/docs/whatsapp/flows/reference/components#radio)
 - [x] [Footer](https://developers.facebook.com/docs/whatsapp/flows/reference/components#foot)
-- [ ] [OptIn](https://developers.facebook.com/docs/whatsapp/flows/reference/components#opt)
+- [x] [OptIn](https://developers.facebook.com/docs/whatsapp/flows/reference/components#opt)
 - [x] [Dropdown](https://developers.facebook.com/docs/whatsapp/flows/reference/components#drop)
 - [ ] [EmbeddedLink](https://developers.facebook.com/docs/whatsapp/flows/reference/components#embed)
 - [ ] [DatePicker](https://developers.facebook.com/docs/whatsapp/flows/reference/components#dp)
