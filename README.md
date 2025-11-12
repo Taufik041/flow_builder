@@ -1,9 +1,9 @@
-![GitHub all releases](https://img.shields.io/github/downloads/https://github.com/Taufik041/{https://github.com/Taufik041/flow_builder}/total)
-![GitHub language count](https://img.shields.io/github/languages/count/https://github.com/Taufik041/{https://github.com/Taufik041/flow_builder})
-![GitHub top language](https://img.shields.io/github/languages/top/https://github.com/Taufik041/{https://github.com/Taufik041/flow_builder}?color=yellow)
-![Bitbucket open issues](https://img.shields.io/bitbucket/issues/https://github.com/Taufik041/{https://github.com/Taufik041/flow_builder})
-![GitHub forks](https://img.shields.io/github/forks/https://github.com/Taufik041/{https://github.com/Taufik041/flow_builder}?style=social)
-![GitHub Repo stars](https://img.shields.io/github/stars/https://github.com/Taufik041/{https://github.com/Taufik041/flow_builder}?style=social)
+![GitHub all releases](https://img.shields.io/github/downloads/Taufik041/flow_builder/total)
+![GitHub language count](https://img.shields.io/github/languages/count/Taufik041/flow_builder)
+![GitHub top language](https://img.shields.io/github/languages/top/Taufik041/flow_builder?color=yellow)
+![GitHub issues](https://img.shields.io/github/issues/Taufik041/flow_builder)
+![GitHub forks](https://img.shields.io/github/forks/Taufik041/flow_builder?style=social)
+![GitHub Repo stars](https://img.shields.io/github/stars/Taufik041/flow_builder?style=social)
 
 # Flow Builder
 
