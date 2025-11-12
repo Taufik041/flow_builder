@@ -61,7 +61,7 @@ uv run main.py
 > Please look-out for merge conflicts.
 
 
-- [x] Basic Text
+- [x] Basic Text(https://developers.facebook.com/docs/whatsapp/flows/reference/components#text)
     - [x] Heading
     - [x] Subheading
     - [x] Caption
