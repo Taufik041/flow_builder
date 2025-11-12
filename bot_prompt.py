@@ -46,14 +46,14 @@ def extract_form_elements_from_image(
                         "type": "text",
                         "text": """
                         Analyze this form/UI image and extract all form elements. For each element, identify:
-                        1. The type (textinput, textarea, dropdown, checkboxgroup, radiobuttonsgroup, etc.)
+                        1. The type (textinput, textheading, dropdown, textarea, checkboxgroup, radiobuttonsgroup, optin etc.)
                         2. The label or placeholder text
 
                         Return ONLY a valid JSON object with keys like "textinput1", "dropdown1", "textbody1", "radiobuttonsgroup1", "checkboxgroup1" etc., and values as the label text.
 
                         Example output format:
                         {"textinput1": {"name": "Mobile Number", "required": true}, "textinput2": {"name": "PAN", "required": false}, "dropdown1": {"name": "Gender", "required": true}, "dropdown2": {"name": "District", "required": true}, "textinput3": {"name": "Pincode", "required": false}
-                        "checkboxgroup1":{}}
+                        "checkboxgroup1":{"name":"Subscribe to newsletter","required":false,"options":["Yes","No"]}, "optin1":{"name":"Accept Terms","required":true}, "radiobuttonsgroup1":{"name":"Choose Option","required":true,"options":["Option 1","Option 2"]}}
 
                         Do not include any markdown formatting, backticks, or explanatory text. Return only the raw JSON object.
                         """
