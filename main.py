@@ -25,9 +25,9 @@ async def upload_image(file: Optional[UploadFile] = None, prompt: Optional[str] 
     try:
         result = json.loads(process_image_and_prompt("temp_image.png" if file is not None else None, prompt, API_KEY))
         result = json.loads(modify_json(result))
-        
+        print(result)
         if result["type"].lower() == "screen":
-            builder = ScreenBuilder(result["image"], result["screen_name"] if "screen_name" in result else "Default Screen")
+            builder = ScreenBuilder(result["image"], result.get("screen_name", "Default Screen"))
             screen_json = builder.build_screen()
             return JSONResponse(content=json.loads(screen_json))
         

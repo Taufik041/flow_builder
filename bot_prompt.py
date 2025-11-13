@@ -46,9 +46,12 @@ def extract_form_elements_from_image(
                         "type": "text",
                         "text": """
                         Analyze this form/UI image and extract all form elements. For each element, identify:
-                        1. The type (textinput, textheading, dropdown, textarea, checkboxgroup, radiobuttonsgroup, optin etc.)
+                        1. The type (textinput, textheading, textsubheading, textcaption, textbody, dropdown, textarea, checkboxgroup, radiobuttonsgroup, optin, photopicker, documentupload, button(EmbeddedLink), CalendarPicker, datepicker etc.)
                         2. The label or placeholder text
-
+                        3. Whether it is required or not (default to false if not clear)
+                        4. Any options for checkboxgroup, and radiobuttongroup return as a list of strings
+                        5. Keep the order of elements as in the image (Left to Right, Top to Bottom)
+                        
                         Return ONLY a valid JSON object with keys like "textinput1", "dropdown1", "textbody1", "radiobuttonsgroup1", "checkboxgroup1" etc., and values as the label text.
 
                         Example output format:
@@ -136,14 +139,14 @@ def parse_user_prompt(
                 "content": f"""Analyze this user prompt and extract the following information:
 
                 1. Language: What language does the user want (English, Odia, Hindi, etc.)? Default is "English" if not specified.
-                2. Type: Is it "screen" or "components"? Default is "components" if not specified. If its screen then a screen_name is also expected.
+                2. Type: Is it "screen" or "components"? Default is "components" if not specified. If its screen then a screen_name is also expected which is a string(Default is "Temp").
                 3. Add: What form elements should be added? and are they required(default is False)? Format as {{"dropdown1": "Gender", "required": true}} and {{"textinput1": "Email", "required": true}}, etc. as a list
                 4. Remove: What form elements should be removed? Format as {{"dropdown1": "Gender"}} and {{"textinput2": "PAN"}}, etc. as a list
-
+                5. The elements are of type: textinput, textheading, textsubheading, textcaption, textbody, dropdown, textarea, checkboxgroup, radiobuttonsgroup, optin, photopicker, documentupload, button(EmbeddedLink), CalendarPicker, datepicker etc. Also include whether it is required or not (default to false if not clear) and any options for checkboxgroup, and radiobuttongroup as a list of strings.
                 User prompt: "{prompt}"
 
                 Return ONLY a valid JSON object in this exact format:
-                {{"language": "English", "type": "screen", "add": {{}}, "remove": {{}}, "screen_name": {{}}}}
+                {{"language": "English", "type": "screen", "add": {{}}, "remove": {{}}, "screen_name": ""}}
 
                 If add or remove have items, include them. If they're empty, use empty objects {{}}.
                 Do not include any markdown formatting, backticks, or explanatory text. Return only the raw JSON object.
@@ -239,7 +242,7 @@ def process_image_and_prompt(
             result["type"] = prompt_data.get("type", "screen")
             result["add"] = prompt_data.get("add", {})
             result["remove"] = prompt_data.get("remove", {})
-            result["screen_name"] = prompt_data.get("screen_name", "Screen")
+            result["screen_name"] = prompt_data.get("screen_name", "temp")
         except Exception as e:
             print(f"Error processing prompt: {e}")
     
