@@ -112,6 +112,104 @@ class ComponentBuilder:
         self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
 
+    def handle_calendarpicker(self, key):
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        reqd_tf = self.input[key]["required"]
+        translate_tf = self.input[key]["translate"]
+        body = {"type": "CalendarPicker","name": name,"helper-text": "Select a date","mode": "single", "visible": f"${{data.{name}_visible}}"}
+        
+        if reqd_tf:
+            body["required"] = "${data.reqd}"
+        
+        if translate_tf == "en-IN":
+            body["label"] = name_original
+        else:
+            label = sarvam_translate(name_original, translate_tf)
+            body["label"] = label
+
+        body["init-value"] = f"${{data.{name}_init}}"
+        body["on-select-action"] = {
+                "name": "data_exchange",
+                "payload": {
+                    "trigger": name,
+                    name: f"${{form.{name}}}",
+                    "meta_data": "${data.meta_data}"
+                }
+            }
+                
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
+        self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
+        self.data["layout"]["children"].append(body)
+
+    def handle_datepicker(self, key):  
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        reqd_tf = self.input[key]["required"]
+        translate_tf = self.input[key]["translate"]
+        body = {"type": "DatePicker","name": name, "visible": f"${{data.{name}_visible}}"}
+        
+        if reqd_tf:
+            body["required"] = "${data.reqd}"
+        
+        if translate_tf == "en-IN":
+            body["label"] = name_original
+        else:
+            label = sarvam_translate(name_original, translate_tf)
+            body["label"] = label
+
+        body["init-value"] = f"${{data.{name}_init}}"
+        body["on-select-action"] = {
+                "name": "data_exchange",
+                "payload": {
+                    "trigger": name,
+                    name: f"${{form.{name}}}",
+                    "meta_data": "${data.meta_data}"
+                }
+            }
+                
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
+        self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
+        self.data["layout"]["children"].append(body)
+
+    def handle_photopicker(self, key):  
+        name_original = self.input[key]["name"]
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        reqd_tf = self.input[key]["required"]
+        translate_tf = self.input[key]["translate"]
+        max_file_size = self.input[key].get("max_file_size_kb", 10240)
+        body = {
+                "type": "PhotoPicker",
+                "name": name,
+                "description": "Please attach images",
+                "photo-source": "camera_gallery",
+                "visible": f"${{data.{name}_visible}}",
+                "max-file-size-kb": max_file_size
+              }
+        
+        if reqd_tf:
+            body["min-uploaded-photos"] = 1
+        else:
+            body["min-uploaded-photos"] = 0
+        
+        if translate_tf == "en-IN":
+            body["label"] = name_original
+        else:
+            label = sarvam_translate(name_original, translate_tf)
+            body["label"] = label
+
+        body["on-click-action"] = {
+                "name": "data_exchange",
+                "payload": {
+                    "trigger": name,
+                    name: f"${{form.{name}}}",
+                    "meta_data": "${data.meta_data}"
+                }
+            }
+                
+        self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
+        self.data["layout"]["children"].append(body)
+
     def handle_optin(self, key):  
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
@@ -137,7 +235,6 @@ class ComponentBuilder:
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["layout"]["children"].append(body)
 
-
     def handle_textarea(self, key):
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
@@ -158,7 +255,6 @@ class ComponentBuilder:
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["data"][name] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
-
 
     def handle_checkboxgroup(self, key):
         name_original = self.input[key]["name"]
@@ -186,8 +282,7 @@ class ComponentBuilder:
             },
             "__example__": [{"id": value,"title": value} for value in self.input[key]["options"]]
         }
-        self.data["layout"]["children"].append(body)
-        
+        self.data["layout"]["children"].append(body)        
             
     def handle_radiobuttonsgroup(self, key):
         name_original = self.input[key]["name"]
@@ -216,8 +311,7 @@ class ComponentBuilder:
             "__example__": [{"id": value,"title": value} for value in self.input[key]["options"]]
         }
         self.data["layout"]["children"].append(body)
-    
-        
+      
     def handle_default(self, key):
         self.data["layout"]["children"].append({"type": "TextHeading", "text": self.input[key]["name"]})
 
@@ -246,6 +340,12 @@ class ComponentBuilder:
                 self.handle_radiobuttonsgroup(key)
             elif "optin" in item_type:
                 self.handle_optin(key)
+            elif "datepicker" in item_type:
+                self.handle_datepicker(key)
+            elif "calendarpicker" in item_type:
+                self.handle_calendarpicker(key)
+            elif "photo_picker" in item_type:
+                self.handle_photopicker(key)
             else:
                 self.handle_default(key)
         return json.dumps(self.data["data"]), json.dumps(self.data["layout"]["children"])

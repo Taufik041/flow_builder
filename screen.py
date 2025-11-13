@@ -2,11 +2,11 @@ from components import ComponentBuilder
 import json
 
 class ScreenBuilder(ComponentBuilder):
-    def __init__(self, input_data: dict, name: str):
+    def __init__(self, input_data: dict, screen_name: str):
         super().__init__(input_data)
-        id = name.strip().replace(" ", "_").replace("'", "").replace("/","")
+        id = screen_name.strip().replace(" ", "_").replace("'", "").replace("/","")
         self.data["id"] = id
-        self.data["title"] = name
+        self.data["title"] = screen_name
         self.data["terminal"] = True
         self.data["layout"]["children"].append({
                 "type": "Footer",
