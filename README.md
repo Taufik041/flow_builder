@@ -79,7 +79,7 @@ uv run main.py
 - [ ] [Image](https://developers.facebook.com/docs/whatsapp/flows/reference/components#img)
 - [ ] [If](https://developers.facebook.com/docs/whatsapp/flows/reference/components#if)
 - [ ] [Switch](https://developers.facebook.com/docs/whatsapp/flows/reference/components#switch)
-- [x] [Media upload](https://developers.facebook.com/docs/whatsapp/flows/reference/media_upload)
+- [ ] [Media upload](https://developers.facebook.com/docs/whatsapp/flows/reference/media_upload)
     - [x] [PhotoPicker](https://developers.facebook.com/docs/whatsapp/flows/reference/media_upload)
     - [ ] [DocumentPicker](https://developers.facebook.com/docs/whatsapp/flows/reference/media_upload)
 - [ ] [NavigationList](https://developers.facebook.com/docs/whatsapp/flows/reference/components#navlist)
