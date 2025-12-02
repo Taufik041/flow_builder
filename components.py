@@ -28,7 +28,48 @@ class ComponentBuilder:
                 "children": []
             }
         }
+        self.trigger_type = """
 
+            elif "trigger" in decrypted_data["data"]:
+                trigger_type = decrypted_data["data"]["trigger"]
+                
+        """
+        self.submit_type = """
+
+            elif "submit" in decrypted_data['data']:
+                submit_type = decrypted_data["data"]["submit"]
+        """
+        self.backend_code = ""
+
+    
+    def handle_trigger(self, name, count_trigger):
+        if count_trigger == 0:
+            self.trigger_type += f"""
+                if trigger_type == "{name}":"""
+        else:
+            self.trigger_type += f"""
+                elif trigger_type == "{name}":"""
+
+        self.trigger_type += f"""
+                    selected_{name} = decrypted_data["data"]["{name}"]
+                    if selected_{name} == "":
+                        response = {{
+                            "screen": decrypted_data["screen"],
+                            "data": {{
+                                "error": True,
+                                "error_message": "Please select correct value"
+                            }}
+                        }}
+                    else:
+                        response = {{
+                            "screen": decrypted_data["screen"],
+                            "data": {{
+                                "{name}_visible": True,
+                                "meta_data": decrypted_data["data"]["meta_data"]
+                            }}
+                        }}
+        """
+    
     def handle_textinput(self, key):
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
@@ -74,7 +115,7 @@ class ComponentBuilder:
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["layout"]["children"].append({"type": "TextCaption", "text": name_original, "visible": f"${{data.{name}_visible}}"})
     
-    def handle_dropdown(self, key):  
+    def handle_dropdown(self, key, count_trigger=0):  
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
         reqd_tf = self.input[key]["required"]
@@ -111,7 +152,8 @@ class ComponentBuilder:
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["data"][f"{name}_init"] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
-
+        self.handle_trigger(name, count_trigger)
+        
     def handle_calendarpicker(self, key):
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
@@ -256,7 +298,7 @@ class ComponentBuilder:
         self.data["data"][name] = {"type": "string", "__example__": ""}
         self.data["layout"]["children"].append(body)
 
-    def handle_checkboxgroup(self, key):
+    def handle_checkboxgroup(self, key, count_trigger):
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
         reqd_tf = self.input[key]["required"]
@@ -283,7 +325,9 @@ class ComponentBuilder:
             "__example__": [{"id": value,"title": value} for value in self.input[key]["options"]]
         }
         self.data["layout"]["children"].append(body)        
-            
+        self.handle_trigger(name, count_trigger)
+        
+        
     def handle_radiobuttonsgroup(self, key):
         name_original = self.input[key]["name"]
         name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
@@ -316,6 +360,8 @@ class ComponentBuilder:
         self.data["layout"]["children"].append({"type": "TextHeading", "text": self.input[key]["name"]})
 
     def build_component(self):
+        count_trigger = 0
+        count_submit = 0
         for key in self.input.keys():
             item_type = key.lower()
             if "id" in item_type or "title" in item_type:
@@ -331,11 +377,13 @@ class ComponentBuilder:
             elif "textcaption" in item_type:
                 self.handle_textcaption(key)
             elif "dropdown" in item_type:
-                self.handle_dropdown(key)
+                self.handle_dropdown(key, count_trigger)
+                count_trigger += 1
             elif "textarea" in item_type:
                 self.handle_textarea(key)
             elif "checkboxgroup" in item_type:
-                self.handle_checkboxgroup(key)
+                self.handle_checkboxgroup(key, count_trigger)
+                count_trigger +=1
             elif "radiobuttonsgroup" in item_type:
                 self.handle_radiobuttonsgroup(key)
             elif "optin" in item_type:
@@ -348,7 +396,8 @@ class ComponentBuilder:
                 self.handle_photopicker(key)
             else:
                 self.handle_default(key)
-        return json.dumps(self.data["data"]), json.dumps(self.data["layout"]["children"])
+
+        return json.dumps(self.data["data"]), json.dumps(self.data["layout"]["children"]), self.trigger_type
     
 
 if __name__ == "__main__":
@@ -380,7 +429,7 @@ if __name__ == "__main__":
         }
     }
     builder = ComponentBuilder(input_data)
-    data_json, layout_children = builder.build_component()
+    data_json, layout_children, backend_code = builder.build_component()
     # with open("output_flow.json", "w", encoding="utf-8") as f:
     #     f.write(screen_json)
     
@@ -389,4 +438,5 @@ if __name__ == "__main__":
     print("***********************************************************************")
     print(layout_children)
     print("***********************************************************************")
-    
+    print(backend_code)
+    print("***********************************************************************")
