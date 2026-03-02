@@ -132,34 +132,102 @@ async def router1(body: dict = Body(...)):
     
 
 if __name__ == "__main__":
-    input_data = {
-            "dropdown1": {
-                "name": "Select Type Of Organization",
-                "required": True,
-                "translate": "en-IN"
-            },
-            "checkboxgroup1": {
-                "name": "Applicant Name",
-                "required": True,
-                "translate": "en-IN",
-                "options": ["Org A", "Org B", "Org C"]
-            },
-            "textinput2": {
-                "name": "Mobile Number",
-                "required": True,
-                "translate": "en-IN"
-            },
-            "textinput3": {
-                "name": "E-Mail",
-                "required": True,
-                "translate": "en-IN"
-            },
-            "dropdown2": {
-                "name": "Whether Hon'ble Governor/Chief Minister is invited as Chief Guest",
-                "required": True,
-                "translate": "en-IN"
-            }
-        }
+    false = False
+    true = True
+    input_datas = {
+  "image": {
+    "textheading1": {
+      "name": "Applicant Details",
+      "required": false
+    },
+    "dropdown1": {
+      "name": "Relation With Child",
+      "required": true
+    },
+    "dropdown2": {
+      "name": "Title",
+      "required": false
+    },
+    "textinput1": {
+      "name": "Applicant's First Name",
+      "required": true
+    },
+    "textinput2": {
+      "name": "Applicant's middle Name",
+      "required": false
+    },
+    "textinput3": {
+      "name": "Applicant's Last Name",
+      "required": false
+    },
+    "dropdown3": {
+      "name": "Proof of Identity",
+      "required": true
+    },
+    "textinput4": {
+      "name": "Proof of Identity No",
+      "required": true
+    },
+    "textinput5": {
+      "name": "Mobile No",
+      "required": true
+    },
+    "radiobuttonsgroup1": {
+      "name": "Set WhatsApp No same as your Mobile No",
+      "required": false,
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    "textinput6": {
+      "name": "WhatsApp Mobile Number",
+      "required": false
+    },
+    "textinput7": {
+      "name": "Email ID",
+      "required": false
+    }
+  },
+  "add": {},
+  "remove": {},
+  "type": "components",
+  "language": "English",
+  "screen_name": "temp"
+}
+    
+    input_data = input_datas['image']
+    for key, value in input_data.items():
+        if "translate" not in input_data[key]:
+            input_data[key]["translate"] = "en-IN"
+    # input_data = {
+    #         "dropdown1": {
+    #             "name": "Select Type Of Organization",
+    #             "required": True,
+    #             "translate": "en-IN"
+    #         },
+    #         "checkboxgroup1": {
+    #             "name": "Applicant Name",
+    #             "required": True,
+    #             "translate": "en-IN",
+    #             "options": ["Org A", "Org B", "Org C"]
+    #         },
+    #         "textinput2": {
+    #             "name": "Mobile Number",
+    #             "required": True,
+    #             "translate": "en-IN"
+    #         },
+    #         "textinput3": {
+    #             "name": "E-Mail",
+    #             "required": True,
+    #             "translate": "en-IN"
+    #         },
+    #         "dropdown2": {
+    #             "name": "Whether Hon'ble Governor/Chief Minister is invited as Chief Guest",
+    #             "required": True,
+    #             "translate": "en-IN"
+    #         }
+    #     }
     
     builder = ScreenBuilder(input_data, "hii")
     data_json, j = builder.build_screen()

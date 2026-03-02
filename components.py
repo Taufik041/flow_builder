@@ -5,7 +5,7 @@ from sarvamai import SarvamAI
 load_dotenv(override=True)
 
 client = SarvamAI(
-    api_subscription_key=os.getenv("SARVAM_API_KEY"),
+    api_subscription_key=os.getenv("SARVAM_API_KEY") or "sk_k0gng5wc_dQcGjY941YtAdlBI8CeHQX0Q",
 )
 
 def sarvam_translate(text: str, language: str) -> str:
@@ -72,7 +72,7 @@ class ComponentBuilder:
     
     def handle_textinput(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "TextInput", "name": name, "visible": f"${{data.{name}_visible}}"}
@@ -93,31 +93,31 @@ class ComponentBuilder:
         
     def handle_textheading(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["layout"]["children"].append({"type": "TextHeading", "text": name_original, "visible": f"${{data.{name}_visible}}"})
 
     def handle_textsubheading(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["layout"]["children"].append({"type": "TextSubheading", "text": name_original, "visible": f"${{data.{name}_visible}}"})
     
     def handle_textbody(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["layout"]["children"].append({"type": "TextBody", "text": name_original, "visible": f"${{data.{name}_visible}}"})
     
     def handle_textcaption(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         self.data["data"][f"{name}_visible"] = {"type": "boolean", "__example__": True}
         self.data["layout"]["children"].append({"type": "TextCaption", "text": name_original, "visible": f"${{data.{name}_visible}}"})
     
     def handle_dropdown(self, key, count_trigger=0):  
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "Dropdown","name": name, "visible": f"${{data.{name}_visible}}"}
@@ -156,7 +156,7 @@ class ComponentBuilder:
         
     def handle_calendarpicker(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "CalendarPicker","name": name,"helper-text": "Select a date","mode": "single", "visible": f"${{data.{name}_visible}}"}
@@ -186,7 +186,7 @@ class ComponentBuilder:
 
     def handle_datepicker(self, key):  
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "DatePicker","name": name, "visible": f"${{data.{name}_visible}}"}
@@ -216,7 +216,7 @@ class ComponentBuilder:
 
     def handle_photopicker(self, key):  
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         max_file_size = self.input[key].get("max_file_size_kb", 10240)
@@ -254,7 +254,7 @@ class ComponentBuilder:
 
     def handle_optin(self, key):  
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_")
+        name = name_original.replace(" ", "_").replace("'", "").replace("/", "_").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "OptIn","name": name, "visible": f"${{data.{name}_visible}}"}
@@ -279,7 +279,7 @@ class ComponentBuilder:
 
     def handle_textarea(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
+        name = name_original.replace(" ", "_").replace("/", "_").replace("'", "").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "TextArea", "name": name, "visible": f"${{data.{name}_visible}}"}
@@ -300,7 +300,7 @@ class ComponentBuilder:
 
     def handle_checkboxgroup(self, key, count_trigger):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
+        name = name_original.replace(" ", "_").replace("/", "_").replace("'", "").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "CheckboxGroup", "name": name, "data-source": f"${{data.{name}}}", "visible": f"${{data.{name}_visible}}"}
@@ -330,7 +330,7 @@ class ComponentBuilder:
         
     def handle_radiobuttonsgroup(self, key):
         name_original = self.input[key]["name"]
-        name = name_original.replace(" ", "_").replace("/", "_").replace("'", "")
+        name = name_original.replace(" ", "_").replace("/", "_").replace("'", "").replace("(", "").replace(")", "")
         reqd_tf = self.input[key]["required"]
         translate_tf = self.input[key]["translate"]
         body = {"type": "RadioButtonsGroup", "name": name, "data-source": f"${{data.{name}}}", "visible": f"${{data.{name}_visible}}"}
@@ -401,42 +401,68 @@ class ComponentBuilder:
     
 
 if __name__ == "__main__":
-    input_data = {
-        "dropdown1": {
-            "name": "Select Type Of Organization",
-            "required": True,
-            "translate": "en-IN"
-        },
-        "textinput1": {
-            "name": "Applicant Name",
-            "required": True,
-            "translate": "en-IN"
-        },
-        "textinput2": {
-            "name": "Mobile Number",
-            "required": True,
-            "translate": "en-IN"
-        },
-        "textinput3": {
-            "name": "E-Mail",
-            "required": True,
-            "translate": "en-IN"
-        },
-        "dropdown2": {
-            "name": "Whether Hon'ble Governor/Chief Minister is invited as Chief Guest",
-            "required": True,
-            "translate": "en-IN"
-        }
+    false = False
+    input_datas = {
+  "image": {
+    "dropdown1": {
+      "name": "Eyes Type",
+      "required": false
+    },
+    "dropdown2": {
+      "name": "Blind",
+      "required": false
+    },
+    "dropdown3": {
+      "name": "Eyes Color",
+      "required": false
+    },
+    "dropdown4": {
+      "name": "Using Specs",
+      "required": false
+    },
+    "dropdown5": {
+      "name": "Specs Type",
+      "required": false
+    },
+    "dropdown6": {
+      "name": "Eye Brow Thickness",
+      "required": false
+    },
+    "dropdown7": {
+      "name": "Eye Brow Shape",
+      "required": false
+    },
+    "dropdown8": {
+      "name": "Blinking",
+      "required": false
+    },
+    "dropdown9": {
+      "name": "Squint",
+      "required": false
     }
+  },
+  "add": {},
+  "remove": {},
+  "type": "components",
+  "language": "English",
+  "screen_name": "Temp"
+}
+
+
+
+    input_data = input_datas['image']
+    for key, value in input_data.items():
+        if "translate" not in input_data[key]:
+            input_data[key]["translate"] = "en-IN"
     builder = ComponentBuilder(input_data)
     data_json, layout_children, backend_code = builder.build_component()
     # with open("output_flow.json", "w", encoding="utf-8") as f:
     #     f.write(screen_json)
     
     print("***********************************************************************")
-    print(data_json)
+    # print(data_json)
     print("***********************************************************************")
     print(layout_children)
     print("***********************************************************************")
-    print(backend_code)
+    # print(backend_code)
     print("***********************************************************************")

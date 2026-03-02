@@ -39,9 +39,9 @@ async def router1(body: dict = Body(...)):
                 trigger_type = decrypted_data["data"]["trigger"]
                 
         
-                if trigger_type == "Select_Type_Of_Organization":
-                    selected_Select_Type_Of_Organization = decrypted_data["data"]["Select_Type_Of_Organization"]
-                    if selected_Select_Type_Of_Organization == "":
+                if trigger_type == "Relation_With_Child":
+                    selected_Relation_With_Child = decrypted_data["data"]["Relation_With_Child"]
+                    if selected_Relation_With_Child == "":
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
@@ -53,14 +53,14 @@ async def router1(body: dict = Body(...)):
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
-                                "Select_Type_Of_Organization_visible": True,
+                                "Relation_With_Child_visible": True,
                                 "meta_data": decrypted_data["data"]["meta_data"]
                             }
                         }
         
-                elif trigger_type == "Applicant_Name":
-                    selected_Applicant_Name = decrypted_data["data"]["Applicant_Name"]
-                    if selected_Applicant_Name == "":
+                elif trigger_type == "Title":
+                    selected_Title = decrypted_data["data"]["Title"]
+                    if selected_Title == "":
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
@@ -72,14 +72,14 @@ async def router1(body: dict = Body(...)):
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
-                                "Applicant_Name_visible": True,
+                                "Title_visible": True,
                                 "meta_data": decrypted_data["data"]["meta_data"]
                             }
                         }
         
-                elif trigger_type == "Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest":
-                    selected_Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest = decrypted_data["data"]["Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest"]
-                    if selected_Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest == "":
+                elif trigger_type == "Proof_of_Identity":
+                    selected_Proof_of_Identity = decrypted_data["data"]["Proof_of_Identity"]
+                    if selected_Proof_of_Identity == "":
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
@@ -91,7 +91,7 @@ async def router1(body: dict = Body(...)):
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
-                                "Whether_Honble_Governor_Chief_Minister_is_invited_as_Chief_Guest_visible": True,
+                                "Proof_of_Identity_visible": True,
                                 "meta_data": decrypted_data["data"]["meta_data"]
                             }
                         }
