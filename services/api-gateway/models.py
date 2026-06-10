@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
+from sqlalchemy import Column, DateTime
 from sqlmodel import Field, SQLModel
 
 
@@ -27,8 +28,14 @@ class Session(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID
     title: str = Field(default="New Session")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class Message(SQLModel, table=True):
@@ -38,7 +45,10 @@ class Message(SQLModel, table=True):
     session_id: UUID = Field(foreign_key="sessions.id")
     role: MessageRole
     content: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class UploadedFile(SQLModel, table=True):
@@ -49,7 +59,10 @@ class UploadedFile(SQLModel, table=True):
     file_name: str
     file_path: str
     file_type: FileType
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class GeneratedFile(SQLModel, table=True):
@@ -61,4 +74,7 @@ class GeneratedFile(SQLModel, table=True):
     file_type: GeneratedFileType
     file_path: str
     version: str = Field(default="7.3")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )

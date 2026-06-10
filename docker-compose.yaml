@@ -38,31 +38,31 @@ services:
     volumes:
       - ./services/auth-service:/app
 
-  rag-service:
-    build: ./services/rag-service
-    env_file: .env
-    ports:
-      - "8002:8002"
-    depends_on:
-      qdrant:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ./services/rag-service:/app
-      - ./knowledge:/knowledge
-      - uploaded_files:/uploads
+  # rag-service:
+  #   build: ./services/rag-service
+  #   env_file: .env
+  #   ports:
+  #     - "8002:8002"
+  #   depends_on:
+  #     qdrant:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./services/rag-service:/app
+  #     - ./knowledge:/knowledge
+  #     - uploaded_files:/uploads
 
-  generation-service:
-    build: ./services/generation-service
-    env_file: .env
-    ports:
-      - "8003:8003"
-    depends_on:
-      - rag-service
-    volumes:
-      - ./services/generation-service:/app
-      - generated_files:/generated
+  # generation-service:
+  #   build: ./services/generation-service
+  #   env_file: .env
+  #   ports:
+  #     - "8003:8003"
+  #   depends_on:
+  #     - rag-service
+  #   volumes:
+  #     - ./services/generation-service:/app
+  #     - generated_files:/generated
 
   api-gateway:
     build: ./services/api-gateway
@@ -71,23 +71,23 @@ services:
       - "8000:8000"
     depends_on:
       - auth-service
-      - rag-service
-      - generation-service
+      # - rag-service
+      # - generation-service
     volumes:
       - ./services/api-gateway:/app
       - uploaded_files:/uploads
       - generated_files:/generated
 
-  frontend:
-    build: ./frontend
-    env_file: .env
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api-gateway
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+  # frontend:
+  #   build: ./frontend
+  #   env_file: .env
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - api-gateway
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
 
 volumes:
   postgres_data:
