@@ -3,7 +3,10 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 import bcrypt
+from dotenv import load_dotenv
 from jose import JWTError, jwt
+
+load_dotenv()
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = "HS256"

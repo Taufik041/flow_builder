@@ -9,3 +9,7 @@ python-jose[cryptography]
 python-dotenv
 httpx
 email-validator
+pytest
+pytest-asyncio
+httpx
+aiosqlite
