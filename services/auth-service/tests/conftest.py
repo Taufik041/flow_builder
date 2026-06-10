@@ -1,3 +1,8 @@
+import os
+
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_auth.db"
+os.environ["JWT_SECRET"] = "test_secret_for_testing_only"
+
 import pytest_asyncio
 from database import get_session
 from httpx import ASGITransport, AsyncClient
