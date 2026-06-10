@@ -19,4 +19,5 @@ jobs:
               pip install --no-cache-dir -r requirements.txt
           
           - name: run pytest
-            run: python -m pytest .\services\auth-service\tests\ -v
+            working-directory: ./services/auth-service
+            run: python -m pytest tests/ -v
