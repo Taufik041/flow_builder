@@ -4,3 +4,4 @@ httpx
 python-jose[cryptography]
 python-dotenv
 python-multipart
+pytest==9.0.3
