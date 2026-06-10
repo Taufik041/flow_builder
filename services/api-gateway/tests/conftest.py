@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession as SQLModelAsyncSession
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./services/api-gateway/tests/test_gateway.db"
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_gateway.db"
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 TestSessionLocal = async_sessionmaker(
