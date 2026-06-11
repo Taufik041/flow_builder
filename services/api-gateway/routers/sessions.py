@@ -19,7 +19,7 @@ async def list_sessions(
         .where(Session.user_id == user_id)
         .order_by(Session.updated_at.desc())
     )
-    return result.scalars().all()
+    return result.all()
 
 
 @router.post("/")
@@ -43,7 +43,7 @@ async def get_session(
     db: SQLModelAsyncSession = Depends(get_db_session),
 ):
     result = await db.exec(select(Session).where(Session.id == session_id))
-    session = result.scalar_one_or_none()
+    session = result.first()
     if not session or session.user_id != UUID(request.state.user_id):
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -52,7 +52,7 @@ async def get_session(
         .where(Message.session_id == session_id)
         .order_by(Message.created_at.asc())
     )
-    return {"session": session, "messages": messages_result.scalars().all()}
+    return {"session": session, "messages": messages_result.all()}
 
 
 @router.delete("/{session_id}")
@@ -62,7 +62,7 @@ async def delete_session(
     db: SQLModelAsyncSession = Depends(get_db_session),
 ):
     result = await db.exec(select(Session).where(Session.id == session_id))
-    session = result.scalar_one_or_none()
+    session = result.first()
     if not session or session.user_id != UUID(request.state.user_id):
         raise HTTPException(status_code=404, detail="Session not found")
     await db.delete(session)
