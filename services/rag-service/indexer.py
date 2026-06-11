@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from pathlib import Path
 
@@ -24,6 +25,27 @@ def ensure_collection():
         )
 
 
+def is_junk_chunk(chunk: dict) -> bool:
+    title = chunk.get("title", "").strip()
+    text = chunk.get("text", "").strip()
+
+    # empty or untitled
+    if not title or title == "untitled":
+        return True
+
+    # body too short to be useful
+    if len(text) < 80:
+        return True
+
+    # title is just repeated as the entire body (preview panel pattern)
+    body_without_header = re.sub(r"^##\s+.+\n", "", text).strip()
+    if body_without_header.lower() == title.lower():
+        return True
+
+    # body is only the title line + nothing else meaningful
+    return len(body_without_header) < 30
+
+
 def index_all() -> dict:
     ensure_collection()
     knowledge_path = Path(KNOWLEDGE_DIR)
@@ -45,8 +67,15 @@ def index_all() -> dict:
                     chunk_markdown(f.read_text(encoding="utf-8"), f"meta_docs/{f.stem}")
                 )
 
+    # NOTE: examples/ are intentionally NOT indexed.
+    # They are loaded whole as few-shot references by the generation service.
+
     if not all_chunks:
-        return {"indexed": 0}
+        return {"indexed": 0, "filtered_out": 0}
+
+    total_before = len(all_chunks)
+    all_chunks = [c for c in all_chunks if not is_junk_chunk(c)]
+    filtered_out = total_before - len(all_chunks)
 
     texts = [c["text"] for c in all_chunks]
     embeddings = model.encode(texts, show_progress_bar=False)
@@ -65,4 +94,4 @@ def index_all() -> dict:
     ensure_collection()
     client.upsert(collection_name=COLLECTION_NAME, points=points)
 
-    return {"indexed": len(points)}
+    return {"indexed": len(points), "filtered_out": filtered_out}
