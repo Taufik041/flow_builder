@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+qdrant-client
+sentence-transformers
+python-dotenv
+httpx
+pytest
+pytest-asyncio

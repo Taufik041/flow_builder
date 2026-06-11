@@ -252,29 +252,85 @@ if trigger_type == "district":
 
 ---
 
-## 13. Large Dropdown Workaround (200+ items)
+## 13. Large Dropdown Workaround (200+ items) — Search Pattern
 
 WhatsApp Flows has a 200-item limit on dropdown/radio data sources.
 
-**Workaround:** Use a search-style `TextInput` + `data_exchange` trigger:
-- User types a search term → trigger fires → backend returns filtered subset (≤200)
-- Applied on fields like caste (500+ options), large municipality lists etc.
+**Workaround:** TextInput + EmbeddedLink + RadioButtonsGroup. TextInput has NO
+trigger mechanism — it cannot talk to the backend. The EmbeddedLink next to it
+is the bridge: its on-click-action reads the typed value via ${form.x} and
+fires the search trigger. Results return into an initially-hidden
+RadioButtonsGroup.
 
+**JSON:**
 ```json
 {
     "type": "TextInput",
-    "name": "caste_search",
-    "label": "Search Caste",
-    "on-change-action": {
+    "name": "caste_input",
+    "required": "${data.reqd}",
+    "label": "Name of your Caste/Tribe"
+},
+{
+    "type": "EmbeddedLink",
+    "text": "Search your caste/tribe",
+    "on-click-action": {
         "name": "data_exchange",
         "payload": {
             "trigger": "caste_search",
-            "caste_search": "${form.caste_search}",
-            "meta_data": "${data.meta_data}"
+            "caste": "${form.caste_input}"
+        }
+    }
+},
+{
+    "type": "RadioButtonsGroup",
+    "name": "Caste",
+    "label": "Select your caste/tribe",
+    "visible": "${data.caste_visible}",
+    "data-source": "${data.caste_data}",
+    "required": "${data.reqd}",
+    "on-select-action": {
+        "name": "data_exchange",
+        "payload": {
+            "trigger": "caste",
+            "selected_caste": "${form.Caste}"
         }
     }
 }
 ```
+
+**Backend (caste_search trigger):**
+```python
+elif trigger_type == "caste_search":
+    resp_data = {}
+    try:
+        caste = decrypted_data["data"]["caste"]
+        if len(caste) < 3:  # minimum 3 chars, enforced in backend
+            resp_data["error"] = True
+            resp_data["error_message"] = get_all_messages("CASTE_ERROR_NOT_ENOUGH", user_language)
+            raise Exception("length less than 3")
+        caste_list = sebcCertAPI.getCaste()  # TODO: replace with actual API
+        show_d = [d for d in caste_list if caste.lower() in d["title"].lower()]
+        if not show_d:
+            resp_data["error"] = True
+            resp_data["error_message"] = get_all_messages("CASTE_ERROR", user_language)
+            raise Exception("Caste not found")
+        resp_data["caste_visible"] = True
+        resp_data["caste_data"] = show_d
+    except:
+        resp_data["error"] = True
+        resp_data["error_message"] = get_all_messages("CASTE_ERROR", user_language)
+    response = {
+        "screen": decrypted_data["screen"],
+        "data": resp_data
+    }
+```
+
+**Key rules:**
+- TextInput has no backend trigger — EmbeddedLink is always the bridge
+- Minimum search length validated in backend (3 chars), not in JSON
+- Substring match, case-insensitive
+- Selection component starts hidden via `_visible` flag, shown when results return
+- Errors keep user on same screen with a bilingual message
 
 ---
 
@@ -511,7 +567,7 @@ async def flow_name_handler(body: dict = Body(...)):
 When a new pattern or workaround is discovered, add a section here following this format:
 
 ```
-## WA-XXX: Short Title
+### WA-XXX: Short Title
 
 **Problem:** What fails and why.
 **Workaround:** What to do instead.
@@ -520,5 +576,15 @@ When a new pattern or workaround is discovered, add a section here following thi
 ```
 
 Current workarounds:
-- **WA-001** (Section 13): Large dropdown >200 items → use search TextInput + data_exchange
+- **WA-001** (Section 13): Large dropdown >200 items → TextInput + EmbeddedLink trigger + hidden RadioButtonsGroup
 - **WA-002** (Section 10): Mixed static+dynamic strings → use backtick syntax
+
+---
+
+## Source Integrity Rule
+
+Every JSON pattern and backend snippet in this knowledge base must come from
+working production code or verified Meta documentation. Never reconstruct
+patterns from memory or invent plausible-looking syntax. If the real
+implementation is unknown, write a TODO and ask — an honest gap is recoverable,
+a confident hallucination is not.

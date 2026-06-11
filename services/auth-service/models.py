@@ -6,7 +6,7 @@ from sqlmodel import Field, SQLModel
 
 
 class User(SQLModel, table=True):
-    __tablename__ = "users"
+    __tablename__ = "users"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str = Field(unique=True, index=True)

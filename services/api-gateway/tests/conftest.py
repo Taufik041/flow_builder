@@ -2,6 +2,7 @@ import os
 
 os.environ["JWT_SECRET"] = "test_secret_for_testing_only"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_gateway.db"
+from collections.abc import AsyncGenerator
 from uuid import uuid4
 
 import pytest_asyncio
@@ -20,7 +21,7 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
-async def override_get_session() -> SQLModelAsyncSession:
+async def override_get_session() -> AsyncGenerator[SQLModelAsyncSession, None]:
     async with TestSessionLocal() as session:
         yield session
 

@@ -23,7 +23,7 @@ class MessageRole(str, Enum):
 
 
 class Session(SQLModel, table=True):
-    __tablename__ = "sessions"
+    __tablename__ = "sessions"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID
@@ -39,7 +39,7 @@ class Session(SQLModel, table=True):
 
 
 class Message(SQLModel, table=True):
-    __tablename__ = "messages"
+    __tablename__ = "messages"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     session_id: UUID = Field(foreign_key="sessions.id")
@@ -52,7 +52,7 @@ class Message(SQLModel, table=True):
 
 
 class UploadedFile(SQLModel, table=True):
-    __tablename__ = "uploaded_files"
+    __tablename__ = "uploaded_files"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     session_id: UUID = Field(foreign_key="sessions.id")
@@ -66,7 +66,7 @@ class UploadedFile(SQLModel, table=True):
 
 
 class GeneratedFile(SQLModel, table=True):
-    __tablename__ = "generated_files"
+    __tablename__ = "generated_files"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     session_id: UUID = Field(foreign_key="sessions.id")

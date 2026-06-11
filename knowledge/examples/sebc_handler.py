@@ -3,28 +3,30 @@ import base64
 import traceback
 from datetime import datetime
 
+from core import get_db  # type: ignore
 from core.keys import PHONE_NUMBER_PRIVATE_KEY  # type: ignore
-from fastapi import APIRouter, Body  # type: ignore
+from fastapi import APIRouter, Body, Depends  # type: ignore
 from fastapi.responses import PlainTextResponse  # type: ignore
 from jsondata.LANDREG.extra_data import sebc_tehsil  # type: ignore
 from jsondata.LANDREG.message_ref import get_all_messages  # type: ignore
+from jsondata.REVENUE.revenue_data import SEBC_SCREEN_MAPPER  # type: ignore
+from models.flow_logs import FlowLogs  # type: ignore
+from services.revenue import revenue_apis, revenue_db_data  # type: ignore
 from utils.fb_utils import decrypt_request, encrypt_response  # type: ignore
 from utils.helper_functions import get_base64_file  # type: ignore
-
-from services import sebc_certificateApis  # type: ignore
 
 sebc_router = APIRouter()
 
 
 @sebc_router.post("/sebc")
-async def sebc(body: dict = Body(...)):  # type: ignore
-    state = [{"id": "21_Odisha", "title": "Odisha"}]
+async def sebc(body: dict = Body(...), db=Depends(get_db)):
     flowid = None
 
     encrypt_flow_data_b64 = body["encrypted_flow_data"]
     encrypt_aes_key_b64 = body["encrypted_aes_key"]
     initial_vector_b64 = body["initial_vector"]
-    sebcCertAPI = sebc_certificateApis.SebcCertificateAPI()
+    sebcCertAPI = revenue_db_data.RevenueDBData()
+    revenue_api = revenue_apis.RevenueAPIS()
     decrypted_data, aes_key, iv = decrypt_request(
         encrypt_flow_data_b64,
         encrypt_aes_key_b64,
@@ -37,12 +39,24 @@ async def sebc(body: dict = Body(...)):  # type: ignore
         flowid, mobile, user_language = flow_token.split("_")
     except:
         user_language = "en"
-    {"lastupdatedtime": datetime.now()}
+        flowid = None
+    update = {"lastupdatedtime": datetime.now()}
     try:
         if decrypted_data["action"] == "ping":
             response = {"data": {"status": "active"}}
         else:
             if decrypted_data["data"] == {}:
+                update.update(
+                    {
+                        "current": "FLOW_OPEN",
+                        "meta_data": {
+                            "msg": "USER HAS OPENED THE FLOW",
+                            "type": "INFO",
+                            "data": {},
+                            "error": "",
+                        },
+                    }
+                )
                 response = {
                     "screen": "LOGIN",
                     "data": {"reqd": True, "otp_sent": False, "meta_data": {}},
@@ -50,7 +64,6 @@ async def sebc(body: dict = Body(...)):  # type: ignore
 
             elif "trigger" in decrypted_data["data"]:
                 trigger_type: str = decrypted_data["data"]["trigger"]
-
                 if trigger_type == "salutation":
                     salutation = decrypted_data["data"]["salutation"]
                     meta_data = decrypted_data["data"].get("meta_data", {})
@@ -64,53 +77,82 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "meta_data": meta_data,
                         },
                     }
+
                 elif trigger_type == "get_otp":
-                    username = decrypted_data["data"]["username"]
-                    otp_response = sebcCertAPI.get_otp(username)
-                    if otp_response["status_code"] == 200:
+                    username = decrypted_data["data"].get("username", "")
+                    if username == "":
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "otp_sent": True,
                                 "error_message": get_all_messages(
-                                    "OTP_SENT", user_language
+                                    "USERNAME_ERROR", user_language
                                 ),
                             },
                         }
                     else:
-                        response = {
-                            "screen": decrypted_data["screen"],
-                            "data": {
-                                "otp_sent": False,
-                                "error_message": get_all_messages(
-                                    "OTP_ERROR", user_language
-                                ),
-                            },
-                        }
+                        otp_response = revenue_api.get_otp(username)
+                        if otp_response.get("status_code", 500) == 200:
+                            response = {
+                                "screen": decrypted_data["screen"],
+                                "data": {
+                                    "otp_sent": True,
+                                    "error_message": get_all_messages(
+                                        "OTP_SENT", user_language
+                                    ),
+                                },
+                            }
+                        else:
+                            response = {
+                                "screen": decrypted_data["screen"],
+                                "data": {
+                                    "otp_sent": False,
+                                    "error_message": get_all_messages(
+                                        "OTP_ERROR", user_language
+                                    ),
+                                },
+                            }
                 elif trigger_type == "final1":
                     # photo=decrypted_data["data"].get("photo", "")
                     try:
                         doc = decrypted_data["data"].get("photo_picker")
                         meta_data = decrypted_data["data"].get("meta_data", {})
-                        document = doc[0]
-                        base64_doc = get_base64_file(document)
-                        image_bytes = len(base64.b64decode(base64_doc))
-                        size_kb = int(image_bytes / 1024)
-                        if size_kb < 20:
-                            raise Exception("size not correct")
-                        photo = base64_doc
-                        meta_data["photo_picker"] = photo
+                        if not doc:
+                            photo = ""
+                        else:
+                            document = doc[0]
+                            base64_doc = get_base64_file(document)
+                            image_bytes = len(base64.b64decode(base64_doc))
+                            size_kb = int(image_bytes / 1024)
+                            if size_kb < 20:
+                                raise Exception("size not correct")
+                            photo = base64_doc
+                            meta_data["photo_picker"] = photo
                     except:
-                        try:
-                            if (
-                                decrypted_data["data"]["photo_picker"][0]["cdn_url"]
+                        if "photo_picker" not in decrypted_data["data"]:
+                            photo = ""
+                        else:
+                            first_item = decrypted_data["data"]["photo_picker"][0]
+                            cdn_url = first_item.get("cdn_url", "")
+                            if cdn_url == "":
+                                response = {
+                                    "screen": decrypted_data["screen"],
+                                    "data": {
+                                        "footer_enabled": False,
+                                        "error": True,
+                                        "error_message": get_all_messages(
+                                            "PHOTO_REQ", user_language
+                                        ),
+                                    },
+                                }
+
+                            elif (
+                                cdn_url
                                 == "EXAMPLE_DATA__CDN_URL_WILL_COME_IN_THIS_FIELD"
                             ):
                                 photo = "ok"
                             else:
                                 photo = ""
-                        except:
-                            photo = ""
                     if not photo:
                         response = {
                             "screen": decrypted_data["screen"],
@@ -158,13 +200,15 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                         email = decrypted_data["data"]["email"]
                         mobile = decrypted_data["data"]["mobile"]
                         age = decrypted_data["data"]["age"]
-                        reg_response = sebcCertAPI.register(name, email, mobile, age)
-                        if reg_response["status_code"] == 200:
+                        reg_response = revenue_api.register(name, email, mobile, age)
+                        if reg_response.get("status_code", 500) == 200:
                             response = {
                                 "screen": decrypted_data["screen"],
                                 "data": {
                                     "registered": True,
-                                    "password_url": reg_response["verificationLink"],
+                                    "password_url": reg_response.get(
+                                        "verificationLink", ""
+                                    ),
                                 },
                             }
                         else:
@@ -172,7 +216,11 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "screen": decrypted_data["screen"],
                                 "data": {
                                     "registered": False,
-                                    "error_message": reg_response["remarks"],
+                                    "error_message": reg_response["remarks"]
+                                    if "remarks" in reg_response
+                                    else get_all_messages(
+                                        "REGISTRATION_ERROR", user_language
+                                    ),
                                 },
                             }
 
@@ -544,6 +592,10 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "muncipalselected_p_init": "",
                                 "prelocaldis_visible": True,
                                 "district3": dist,
+                                "district3_init": "",
+                                "present_block3_init": "",
+                                "present_gp3_init": "",
+                                "present_village3_init": "",
                                 "select_area_present_init": area_selected,
                             },
                         }
@@ -772,9 +824,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "pre_mcw_init": "",
                                 "pre_NAC_init": "",
                                 "pre_NACW_init": "",
-                                "block3_init": "",
-                                "gp3_init": "",
-                                "village3_init": "",
+                                "present_block3_init": "",
+                                "present_gp3_init": "",
+                                "present_village3_init": "",
                             },
                         }
                     else:
@@ -825,6 +877,10 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "pre_mcw_init": "",
                                 "pre_NAC_init": "",
                                 "pre_NACW_init": "",
+                                "gp3": [],
+                                "present_gp3_init": "",
+                                "village3": [],
+                                "present_village3_init": "",
                             },
                         }
 
@@ -835,9 +891,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "gp3": [],
-                                "gp3_init": "",
-                                "block3_init": "",
-                                "village3_init": "",
+                                "present_gp3_init": "",
+                                "present_block3_init": "",
+                                "present_village3_init": "",
                                 "village3": [],
                             },
                         }
@@ -853,9 +909,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "screen": decrypted_data["screen"],
                                 "data": {
                                     "gp3": g,
-                                    "block3_init": selected_rural_block,
-                                    "gp3_init": "",
-                                    "village3_init": "",
+                                    "present_block3_init": selected_rural_block,
+                                    "present_gp3_init": "",
+                                    "present_village3_init": "",
                                     "village3": [],
                                 },
                             }
@@ -866,8 +922,8 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "village3": [],
-                                "village3_init": "",
-                                "gp3_init": "",
+                                "present_village3_init": "",
+                                "present_gp3_init": "",
                             },
                         }
                     else:
@@ -882,7 +938,7 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "village3": v3,
-                                "gp3_init": selected_rural_gp,
+                                "present_gp3_init": selected_rural_gp,
                             },
                         }
 
@@ -915,6 +971,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "perlocaldis_visible": True,
                                 "district1": dist,
                                 "district1_init": "",
+                                "permanent_block3_init": "",
+                                "permanent_gp3_init": "",
+                                "permanent_village3_init": "",
                                 "select_area_permanent_init": area_selected,
                             },
                         }
@@ -984,10 +1043,10 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "per_NAC_init": "",
                                 "per_NACW_init": "",
                                 "block3_permanent": [],
-                                "block3_permanent_init": "",
-                                "gp3_permanent_init": "",
+                                "permanent_block3_init": "",
+                                "permanent_gp3_init": "",
                                 "gp3_permanent": [],
-                                "village3_permanent_init": "",
+                                "permanent_village3_init": "",
                                 "village3_permanent": [],
                             },
                         }
@@ -1039,6 +1098,11 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "per_NAC_init": "",
                                 "per_NACW_init": "",
                                 "block3_permanent": b,
+                                "permanent_block3_init": "",
+                                "permanent_gp3_init": "",
+                                "gp3_permanent": [],
+                                "permanent_village3_init": "",
+                                "village3_permanent": [],
                             },
                         }
                 elif trigger_type == "block3_permanent":
@@ -1049,8 +1113,10 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "gp3_permanent": [],
-                                "gp3_permanent_init": "",
-                                "block3_permanent_init": "",
+                                "village3_permanent": [],
+                                "permanent_gp3_init": "",
+                                "permanent_block3_init": "",
+                                "permanent_village3_init": "",
                             },
                         }
                     else:
@@ -1064,7 +1130,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "gp3_permanent": g,
-                                "block3_permanent_init": block,
+                                "permanent_block3_init": block,
+                                "village3_permanent": [],
+                                "permanent_village3_init": "",
                             },
                         }
                 elif trigger_type == "gp3_permanent":
@@ -1074,8 +1142,8 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "village3_permanent": [],
-                                "village3_permanent_init": "",
-                                "gp3_permanent_init": "",
+                                "permanent_village3_init": "",
+                                "permanent_gp3_init": "",
                             },
                         }
                     else:
@@ -1090,7 +1158,7 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "village3_permanent": village3,
-                                "gp3_permanent_init": selected_rural_gp,
+                                "permanent_gp3_init": selected_rural_gp,
                             },
                         }
 
@@ -1110,6 +1178,41 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "screen": decrypted_data["screen"],
                             "data": {"Resolution_No": res_no},
                         }
+
+                elif trigger_type == "caste_search":
+                    resp_data = {}
+                    try:
+                        caste = decrypted_data["data"]["caste"]
+                        # print("caste", caste)
+                        if len(caste) < 3:
+                            resp_data["error"] = True
+                            resp_data["error_message"] = get_all_messages(
+                                "CASTE_ERROR_NOT_ENOUGH", user_language
+                            )
+                            raise Exception("length less than 3")
+                        caste_visible = bool(caste)
+                        caste_list = sebcCertAPI.getCaste()
+                        show_d = []
+                        for d in caste_list:
+                            if caste.lower() in d["title"].lower():
+                                show_d.append(d)
+                        if not show_d:
+                            resp_data["error"] = True
+                            resp_data["error_message"] = get_all_messages(
+                                "CASTE_ERROR", user_language
+                            )
+                            raise Exception("Caste not found")
+
+                        resp_data["caste_visible"] = caste_visible
+                        resp_data["caste_data"] = show_d
+                        resp_data["caste_visible"] = True
+
+                    except:
+                        resp_data["error"] = True
+                        resp_data["error_message"] = get_all_messages(
+                            "CASTE_ERROR", user_language
+                        )
+                    response = {"screen": decrypted_data["screen"], "data": resp_data}
 
                 elif trigger_type == "Resolution_No":
                     selected_resolution_no = decrypted_data["data"][
@@ -1157,57 +1260,81 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                     Other = decrypted_data["data"].get("Other", "")
                     data = ""
                     if upload_type == "Identity_Proof":
+                        cdn_url = (
+                            Identity_Proof[0].get("cdn_url", "")
+                            if Identity_Proof
+                            else ""
+                        )
                         if (
-                            Identity_Proof == ""
-                            or Identity_Proof[0]["cdn_url"]
+                            not Identity_Proof
+                            or cdn_url
                             == "EXAMPLE_DATA__CDN_URL_WILL_COME_IN_THIS_FIELD"
                         ):
                             data = "fail"
-                        meta_data[upload_type] = Identity_Proof
+                        else:
+                            meta_data[upload_type] = Identity_Proof
                         document_name_other_visible = False
 
                     elif upload_type == "copy_of_ROR":
+                        cdn_url = (
+                            copy_of_ROR[0].get("cdn_url", "") if copy_of_ROR else ""
+                        )
                         if (
-                            copy_of_ROR == ""
-                            or copy_of_ROR[0]["cdn_url"]
+                            not copy_of_ROR
+                            or cdn_url
                             == "EXAMPLE_DATA__CDN_URL_WILL_COME_IN_THIS_FIELD"
                         ):
                             data = "fail"
+                        else:
+                            meta_data[upload_type] = copy_of_ROR
                         document_name_other_visible = False
-                        meta_data[upload_type] = copy_of_ROR
 
                     elif upload_type == "Land_Pass_Book":
+                        cdn_url = (
+                            Land_Pass_Book[0].get("cdn_url", "")
+                            if Land_Pass_Book
+                            else ""
+                        )
                         if (
-                            Land_Pass_Book == ""
-                            or Land_Pass_Book[0]["cdn_url"]
+                            not Land_Pass_Book
+                            or cdn_url
                             == "EXAMPLE_DATA__CDN_URL_WILL_COME_IN_THIS_FIELD"
                         ):
                             data = "fail"
+                        else:
+                            meta_data[upload_type] = Land_Pass_Book
                         document_name_other_visible = False
-                        meta_data[upload_type] = Land_Pass_Book
 
                     elif upload_type == "Self_Declaration":
+                        cdn_url = (
+                            Self_Declaration[0].get("cdn_url", "")
+                            if Self_Declaration
+                            else ""
+                        )
                         if (
-                            Self_Declaration == ""
-                            or Self_Declaration[0]["cdn_url"]
+                            not Self_Declaration
+                            or cdn_url
                             == "EXAMPLE_DATA__CDN_URL_WILL_COME_IN_THIS_FIELD"
                         ):
                             data = "fail"
-                        meta_data[upload_type] = Self_Declaration
+                        else:
+                            meta_data[upload_type] = Self_Declaration
                         document_name_other_visible = True
 
                     elif upload_type == "Other":
                         document_name_other = decrypted_data["data"].get(
                             "document_name_other", ""
                         )
+                        cdn_url = Other[0].get("cdn_url", "") if Other else ""
                         if (
-                            Other == ""
-                            or Other[0]["cdn_url"]
+                            not Other
+                            or cdn_url
                             == "EXAMPLE_DATA__CDN_URL_WILL_COME_IN_THIS_FIELD"
                         ):
                             data = "fail"
+                        else:
+                            meta_data[document_name_other] = Other
                         document_name_other_visible = False
-                        meta_data[document_name_other] = Other
 
                     if data == "fail":
                         response = {
@@ -1275,19 +1402,24 @@ async def sebc(body: dict = Body(...)):  # type: ignore
 
             elif "footer" in decrypted_data["data"]:
                 footer_type = decrypted_data["data"]["footer"]
-                f"USER CLICKED ON THE {footer_type.upper()} BUTTON"
+                log_message = f"USER CLICKED ON THE {footer_type.upper()} BUTTON"
+                log_info = "INFO"
+                log_error = ""
                 if footer_type == "login":
                     username = decrypted_data["data"].get("username", "")
                     OTP_data = decrypted_data["data"].get("OTP", "")
                     meta_data = decrypted_data["data"].get("meta_data", {})
-                    login_status = sebcCertAPI.login(
+                    login_status = revenue_api.login(
                         username, OTP_data, client_id="292425"
                     )
-                    if login_status["status_code"] == 200:
+                    if login_status.get("status_code", 500) == 200:
                         meta_data["username"] = username
                         meta_data["OTP"] = OTP_data
                         meta_data["token_for_submit"] = login_status["token"]
                         meta_data["reference_no"] = login_status["reference_no"]
+                        log_message = "USER LOGGED IN SUCCESSFULLY"
+                        log_info = "INFO"
+                        log_error = ""
                         response = {
                             "screen": "SCREEN_ONE",
                             "data": {
@@ -1296,7 +1428,11 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 "footer_enabled": False,
                             },
                         }
-                    elif login_status["status_code"] == 400:
+                    elif login_status.get("status_code", 500) == 400:
+                        log_message = "USER LOGIN FAILED"
+                        log_info = "USER_ERROR"
+                        log_error = "Invalid credentials or OTP limit exceeded"
+
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
@@ -1307,9 +1443,12 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 ),
                             },
                         }
-                    elif login_status["status_code"] == 500:
-                        login_status.get("error", "LOGIN API failed")
-                        login_status.get("raw_response", traceback.format_exc())
+                    elif login_status.get("status_code", 500) == 500:
+                        log_message = login_status.get("error", "LOGIN API failed")
+                        log_info = "API_ERROR"
+                        log_error = login_status.get(
+                            "raw_response", traceback.format_exc()
+                        )
 
                         response = {
                             "screen": decrypted_data["screen"],
@@ -1322,7 +1461,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             },
                         }
                     else:
-                        traceback.format_exc()
+                        log_message = "USER LOGIN FAILED"
+                        log_info = "API_ERROR"
+                        log_error = traceback.format_exc()
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
@@ -1336,7 +1477,7 @@ async def sebc(body: dict = Body(...)):  # type: ignore
 
                 elif footer_type == "SCREEN_ONE":
                     meta_data = decrypted_data["data"].get("meta_data", {})
-                    state_data = state
+                    state_data = sebcCertAPI.getState()
                     district = sebcCertAPI.getDistricts()
                     for key, value in decrypted_data["data"].items():
                         if key == "meta_data":
@@ -1356,14 +1497,31 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             photo = base64_doc
                             meta_data["photo_picker"] = photo
                         except:
-                            if (
-                                decrypted_data["data"]["applicantphoto"][0]["cdn_url"]
+                            first_item = decrypted_data["data"]["applicantphoto"][0]
+                            cdn_url = first_item.get("cdn_url", "")
+                            if cdn_url == "":
+                                response = {
+                                    "screen": decrypted_data["screen"],
+                                    "data": {
+                                        "footer_enabled": False,
+                                        "error": True,
+                                        "error_message": get_all_messages(
+                                            "PHOTO_REQ", user_language
+                                        ),
+                                    },
+                                }
+
+                            elif (
+                                cdn_url
                                 == "EXAMPLE_DATA__CDN_URL_WILL_COME_IN_THIS_FIELD"
                             ):
                                 photo = "ok"
                             else:
                                 photo = ""
                         if not photo:
+                            log_message = "PHOTO UPLOAD FAILED"
+                            log_info = "USER_ERROR"
+                            log_error = "Photo should be between 20KB and 200KB"
                             response = {
                                 "screen": decrypted_data["screen"],
                                 "data": {
@@ -1375,7 +1533,11 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 },
                             }
                         else:
-                            f"{screen_mapper.get(footer_type, '')} COMPLETED"
+                            log_message = (
+                                f"{SEBC_SCREEN_MAPPER.get(footer_type, '')} COMPLETED"
+                            )
+                            log_info = "INFO"
+                            log_error = ""
                             response = {
                                 "screen": "SCREEN_TWO",
                                 "data": {
@@ -1399,6 +1561,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 },
                             }
                     else:
+                        log_message = "PHOTO UPLOAD FAILED"
+                        log_info = "USER_ERROR"
+                        log_error = "Photo should be between 20KB and 200KB"
                         response = {
                             "screen": "SCREEN_ONE",
                             "data": {
@@ -1414,7 +1579,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                         if key == "meta_data":
                             continue
                         meta_data[key] = value
-                    f"{screen_mapper.get(footer_type, '')} COMPLETED"
+                    log_message = f"{SEBC_SCREEN_MAPPER.get(footer_type, '')} COMPLETED"
+                    log_info = "INFO"
+                    log_error = ""
                     response = {
                         "screen": "SCREEN_THREE",
                         "data": {
@@ -1627,6 +1794,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 break
                             d = ""
                     if d == "TEXT":
+                        log_message = f"{get_all_messages('MIN_VALUE_CHECK', 'EN').replace('~', check_data[f]['en'])}"
+                        log_info = "USER_ERROR"
+                        log_error = f"{get_all_messages('MIN_VALUE_CHECK', 'EN').replace('~', check_data[f]['en'])}"
                         response = {
                             "screen": "SCREEN_THREE",
                             "data": {
@@ -1637,6 +1807,11 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             },
                         }
                     else:
+                        log_message = (
+                            f"{SEBC_SCREEN_MAPPER.get(footer_type, '')} COMPLETED"
+                        )
+                        log_info = "INFO"
+                        log_error = ""
                         response = {
                             "screen": "SCREEN_FOUR",
                             "data": {
@@ -1789,7 +1964,7 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             meta_data["wealthtaxdet"] = meta_data.get(
                                 "Wealth_Tax_Details", ""
                             )
-                    castes = sebcCertAPI.getCaste()
+                    sebcCertAPI.getCaste()
                     check_data = {
                         "prossizeofholdingarea": {
                             "en": "size of holding area",
@@ -1827,6 +2002,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                                 break
                             d = ""
                     if d == "TEXT":
+                        log_message = f"{get_all_messages('MIN_VALUE_CHECK', 'EN').replace('~', check_data[f]['en'])}"
+                        log_info = "USER_ERROR"
+                        log_error = f"{get_all_messages('MIN_VALUE_CHECK', 'EN').replace('~', check_data[f]['en'])}"
                         response = {
                             "screen": "SCREEN_FOUR",
                             "data": {
@@ -1837,12 +2015,17 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             },
                         }
                     else:
+                        log_message = (
+                            f"{SEBC_SCREEN_MAPPER.get(footer_type, '')} COMPLETED"
+                        )
+                        log_info = "INFO"
+                        log_error = ""
                         response = {
                             "screen": "SCREEN_FIVE",
                             "data": {
                                 "reqd": True,
                                 "meta_data": meta_data,
-                                "caste": castes,
+                                "caste_visible": False,
                                 "apply_to_office_init": [
                                     i["tehsil"]
                                     for i in sebc_tehsil
@@ -1861,7 +2044,9 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                         if key == "meta_data":
                             continue
                         meta_data[key] = value
-
+                    log_message = f"{SEBC_SCREEN_MAPPER.get(footer_type, '')} COMPLETED"
+                    log_info = "INFO"
+                    log_error = ""
                     response = {
                         "screen": "SCREEN_SIX",
                         "data": {
@@ -1875,13 +2060,45 @@ async def sebc(body: dict = Body(...)):  # type: ignore
                             "upload_show": True,
                         },
                     }
+                update.update(
+                    {
+                        "current": SEBC_SCREEN_MAPPER.get(footer_type, ""),
+                        "meta_data": {
+                            "msg": log_message,
+                            "type": log_info,
+                            "data": {},
+                            "error": log_error,
+                        },
+                    }
+                )
 
     except Exception:
         traceback.print_exc()
+        # update.update({"current":SEBC_SCREEN_MAPPER.get(footer_type, ""), "meta_data":{"msg": log_message,"type":"FLOW_ERROR","data":{},"error": traceback.format_exc()}})
         response = {
             "screen": decrypted_data.get("screen", ""),
             "data": {"error": True, "error_message": "SOME ERROR OCCURED"},
         }
+        update.update(
+            {
+                "current": SEBC_SCREEN_MAPPER.get(
+                    decrypted_data["screen"], decrypted_data["screen"]
+                ),
+                "meta_data": {
+                    "msg": "SOME ERROR OCCURED INSIDE THE FLOW",
+                    "type": "FLOW_ERROR",
+                    "data": {"payload": decrypted_data, "response": response},
+                    "error": traceback.format_exc(),
+                },
+            }
+        )
+
+    if flowid:
+        # db=OD_DB()
+        flow_session = db.query(FlowLogs).filter(FlowLogs.flowmaster_id == flowid)
+        flow_session.update(update)
+        db.commit()
+        # db.close()
 
     encrypted_response = encrypt_response(response, aes_key, iv)
     return PlainTextResponse(content=encrypted_response, media_type="text/plain")
