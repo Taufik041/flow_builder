@@ -4,6 +4,7 @@ httpx
 python-jose[cryptography]
 python-dotenv
 python-multipart
+pypdf
 pytest==9.0.3
 sqlmodel
 pytest_asyncio

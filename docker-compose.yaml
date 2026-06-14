@@ -53,16 +53,17 @@ services:
       - ./knowledge:/knowledge
       - uploaded_files:/uploads
 
-  # generation-service:
-  #   build: ./services/generation-service
-  #   env_file: .env
-  #   ports:
-  #     - "8003:8003"
-  #   depends_on:
-  #     - rag-service
-  #   volumes:
-  #     - ./services/generation-service:/app
-  #     - generated_files:/generated
+  generation-service:
+    build: ./services/generation-service
+    env_file: .env
+    ports:
+      - "8003:8003"
+    depends_on:
+      - rag-service
+    volumes:
+      - ./services/generation-service:/app
+      - generated_files:/generated
+      - ./knowledge:/knowledge
 
   api-gateway:
     build: ./services/api-gateway
@@ -72,7 +73,7 @@ services:
     depends_on:
       - auth-service
       - rag-service
-      # - generation-service
+      - generation-service
     volumes:
       - ./services/api-gateway:/app
       - uploaded_files:/uploads

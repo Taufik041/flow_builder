@@ -581,6 +581,21 @@ Current workarounds:
 
 ---
 
+## 22: flow_token Parsing
+
+**Problem:** Incorrect parsing of `flow_token` (e.g. using `[-1]`, `.get()`, or other variations) causes `user_language` and other token fields to be extracted incorrectly, breaking bilingual support and flow identification.
+
+**Workaround:** Always use exact positional unpacking. This is non-negotiable and is the only accepted standard:
+```python
+flow_token = decrypted_data["flow_token"]
+flowid, mobile, user_language = flow_token.split("_")
+```
+**Example:** Token `"FL001_9876543210_en"` → `flowid="FL001"`, `mobile="9876543210"`, `user_language="en"`
+
+**Versions:** All versions.
+
+---
+
 ## Source Integrity Rule
 
 Every JSON pattern and backend snippet in this knowledge base must come from

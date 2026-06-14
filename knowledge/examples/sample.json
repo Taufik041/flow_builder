@@ -1,0 +1,468 @@
+{
+    "version": "7.1",
+    "data_api_version": "3.0",
+    "routing_model": {
+        "LOGIN": [
+            "PERSONAL_DETAILS"
+        ],
+        "PERSONAL_DETAILS": [
+            "ADDRESS"
+        ],
+        "ADDRESS": []
+    },
+    "screens": [
+        {
+            "id": "LOGIN",
+            "title": "LOGIN EXAMPLE",
+            "data": {
+                "reqd": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "meta_data": {
+                    "type": "object",
+                    "__example__": {}
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "Image",
+                        "src": "BASE64_ENCODED_IMAGE_HERE",
+                        "height": 85,
+                        "scale-type": "cover"
+                    },
+                    {
+                        "type": "TextBody",
+                        "font-weight": "bold",
+                        "text": "Login for the existing User of eDistrict/ Service Plus",
+                        "visible": true
+                    },
+                    {
+                        "type": "TextInput",
+                        "visible": true,
+                        "label": "User ID (Email/Mobile)",
+                        "name": "user_id",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Get OTP",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "get_otp",
+                                "username": "${form.user_id}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "TextInput",
+                        "visible": true,
+                        "label": "OTP",
+                        "max-chars": 6,
+                        "min-chars": 6,
+                        "input-type": "number",
+                        "name": "OTP",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Don't have account? Register",
+                        "on-click-action": {
+                            "name": "open_url",
+                            "url": "${data.password_url}"
+                        }
+                    },
+                    {
+                        "type": "TextCaption",
+                        "text": "⚠️ Important Instructions\n\n- Your session will expire after 30 minutes.\n- Keep all mandatory documents ready (passport size photo,Aadhar card)\n- Unsaved data may be lost after the session timeout."
+                    },
+                    {
+                        "type": "OptIn",
+                        "label": "I understand and wish to continue.",
+                        "name": "q",
+                        "required": true
+                    },
+                    {
+                        "type": "Footer",
+                        "label": "Verify OTP",
+                        "enabled": "${data.otp_sent}",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "footer": "LOGIN",
+                                "form": "${form}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "PERSONAL_DETAILS",
+            "title": "EXAMPLE",
+            "data": {},
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextBody",
+                        "text": "Fill all the details in BLOCK LETTERS",
+                        "visible": true
+                    },
+                    {
+                        "type": "PhotoPicker",
+                        "name": "photo_picker",
+                        "label": "Applicant photo",
+                        "photo-source": "camera_gallery",
+                        "max-uploaded-photos": 1,
+                        "min-uploaded-photos": 1,
+                        "max-file-size-kb": 200
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Upload",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "photo_upload_trigger",
+                                "photo_picker": "${form.photo_picker}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "name": "salutation",
+                        "label": "Salutation",
+                        "required": "${data.reqd}",
+                        "data-source": [
+                            {
+                                "id": "1",
+                                "title": "Shri"
+                            },
+                            {
+                                "id": "2",
+                                "title": "Smt"
+                            },
+                            {
+                                "id": "3",
+                                "title": "Miss"
+                            }
+                        ],
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "salutation",
+                                "salutation": "${form.salutation}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "Caste Details"
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "caste_input",
+                        "required": "${data.reqd}",
+                        "label": "Name of your Caste/Tribe"
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Search your caste/tribe",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "caste_search",
+                                "caste": "${form.caste_input}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "RadioButtonsGroup",
+                        "name": "Caste",
+                        "label": "Select your caste/tribe",
+                        "visible": "${data.caste_visible}",
+                        "data-source": "${data.caste_data}",
+                        "required": "${data.reqd}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "caste",
+                                "selected_caste": "${form.Caste}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "name": "Resolution_No",
+                        "label": "Resolution No.",
+                        "required": "${data.reqd}",
+                        "data-source": "${data.Resolution_No}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "Resolution_No",
+                                "selected_Resolution_No": "${form.Resolution_No}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "CalendarPicker",
+                        "name": "choose_date",
+                        "label": "choose from calendar",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "DatePicker",
+                        "name": "pick a date",
+                        "label": "label for date",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "TextArea",
+                        "required": "${data.reqd}",
+                        "label": "Purpose",
+                        "name": "purpose"
+                    },
+                    {
+                        "type": "Footer",
+                        "enabled": "${data.footer_enabled}",
+                        "label": "Continue",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "footer": "PERSONAL_DETAILS",
+                                "form": "${form}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "ADDRESS",
+            "title": "EXAMPLE",
+            "data": {},
+            "terminal":true,
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextSubheading",
+                        "text": "Present Address"
+                    },
+                    {
+                        "type": "Dropdown",
+                        "visible": true,
+                        "label": "District",
+                        "init-value": "${data.pre_dist_init}",
+                        "name": "present_district",
+                        "required": "${data.reqd}",
+                        "data-source": "${data.all_pre_district}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_district",
+                                "present_district": "${form.present_district}",
+                                "meta_data": "${form.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "visible": true,
+                        "label": "Subdivision",
+                        "init-value": "${data.pre_subdiv_init}",
+                        "name": "present_subdivision",
+                        "required": "${data.reqd}",
+                        "data-source": "${data.all_pre_subdivision}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_subdivision",
+                                "present_subdivision": "${form.present_subdivision}",
+                                "meta_data": "${form.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "label": "Village",
+                        "name": "present_village",
+                        "init-value": "${data.present_village_init}",
+                        "required": "${data.pre_vill_reqd}",
+                        "data-source": "${data.all_pre_village}",
+                        "visible": "${data.present_village_enabled}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_village",
+                                "present_village": "${form.present_village}",
+                                "meta_data": "${form.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "RadioButtonsGroup",
+                        "name": "present_terms",
+                        "init-value": "${data.present_terms_init}",
+                        "label": "Village Not in list",
+                        "enabled": "${data.present_terms_enabled}",
+                        "data-source": [
+                            {
+                                "id": "1",
+                                "title": "Click here"
+                            }
+                        ],
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_terms",
+                                "present_terms": "${form.present_terms}",
+                                "meta_data": "${form.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "village_not_in_list",
+                        "label": "Enter Your Village Name",
+                        "visible": "`${form.present_terms} =='1'`",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "Permanent Address"
+                    },
+                    {
+                        "type": "RadioButtonsGroup",
+                        "visible": true,
+                        "label": "Present address same as permanent address?",
+                        "name": "present_permanent",
+                        "required": "${data.reqd}",
+                        "data-source": [
+                            {
+                                "id": "1",
+                                "title": "Yes"
+                            },
+                            {
+                                "id": "2",
+                                "title": "No"
+                            }
+                        ],
+                        "enabled": true,
+                        "media-size": "regular"
+                    },
+                    {
+                        "type": "If",
+                        "condition": "${form.present_permanent} =='2'",
+                        "then": [
+                            {
+                                "type": "TextSubheading",
+                                "text": "Permanent Address"
+                            },
+                            {
+                                "type": "Dropdown",
+                                "visible": true,
+                                "init-value": "${data.per_dist_init}",
+                                "label": "District",
+                                "name": "permanent_district",
+                                "required": "${data.reqd}",
+                                "data-source": "${data.all_per_district}",
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_district",
+                                        "permanent_district": "${form.permanent_district}",
+                                        "meta_data": "${form.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "Dropdown",
+                                "visible": true,
+                                "init-value": "${data.per_subdiv_init}",
+                                "label": "Subdivision",
+                                "name": "permanent_subdivision",
+                                "required": "${data.reqd}",
+                                "data-source": "${data.all_per_subdivision}",
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_subdivision",
+                                        "permanent_subdivision": "${form.permanent_subdivision}",
+                                        "meta_data": "${form.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "Dropdown",
+                                "label": "Village",
+                                "name": "permanent_village",
+                                "visible": "${data.permanent_village_enabled}",
+                                "required": "${data.per_vill_reqd}",
+                                "init-value": "${data.permanent_village_init}",
+                                "data-source": "${data.all_per_village}",
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_village",
+                                        "permanent_village": "${form.permanent_village}",
+                                        "meta_data": "${form.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "RadioButtonsGroup",
+                                "init-value": "${data.permanent_terms_init}",
+                                "name": "permanent_terms",
+                                "enabled": "${data.permanent_terms_enabled}",
+                                "label": "Village Not in list",
+                                "data-source": [
+                                    {
+                                        "id": "1",
+                                        "title": "Click Here"
+                                    }
+                                ],
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_terms",
+                                        "permanent_terms": "${form.permanent_terms}",
+                                        "meta_data": "${form.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "TextInput",
+                                "name": "permanent_village_not_in_list",
+                                "label": "Enter Your Village Name",
+                                "visible": "`${form.permanent_terms} =='1'`",
+                                "required": "${data.reqd}"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Footer",
+                        "label": "Continue",
+                        "on-click-action": {
+                            "name": "complete",
+                            "payload": {
+                                "footer": "ADDRESS",
+                                "form": "${form}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

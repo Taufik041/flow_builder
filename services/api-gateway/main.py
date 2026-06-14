@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from middleware.auth import AuthMiddleware
-from routers import auth, sessions
+from routers import auth, chat, files, sessions
 
 load_dotenv()
 
@@ -30,6 +30,8 @@ app.add_middleware(AuthMiddleware)
 
 app.include_router(auth.router)
 app.include_router(sessions.router)
+app.include_router(chat.router)
+app.include_router(files.router)
 
 
 @app.get("/health")
