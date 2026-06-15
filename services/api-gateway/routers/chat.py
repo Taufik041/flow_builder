@@ -83,6 +83,9 @@ async def chat(
         "version": body.version,
         "top_k": body.top_k,
         "model": body.model,
+        "aisensy_flow_id": session.aisensy_flow_id,
+        "flow_name": session.title,
+        "flow_category": session.flow_category,
     }
     session_id = body.session_id
     version = body.version
@@ -112,82 +115,100 @@ async def chat(
 
     async def event_stream():
         accumulated: list[str] = []
+        captured_flow_id: str | None = None
+
         try:
             async for line in gen_response.aiter_lines():
+                # forward every line once, unchanged
+                yield line + "\n"
+
                 if not line.startswith("data: "):
                     continue
                 data = line[6:]
                 if data == "[DONE]":
                     break
+
                 try:
-                    token_data = json.loads(data)
-                    if "token" in token_data:
-                        accumulated.append(token_data["token"])
-                        yield f"data: {json.dumps({'token': token_data['token']})}\n\n"
-                    elif "error" in token_data:
-                        yield f"data: {json.dumps({'error': token_data['error']})}\n\n"
+                    evt = json.loads(data)
                 except json.JSONDecodeError:
-                    pass
+                    continue
+
+                # a new attempt is starting -> drop earlier (possibly broken) text
+                if evt.get("status") == "generating_json":
+                    accumulated = []
+
+                if "token" in evt:
+                    accumulated.append(evt["token"])
+                elif "flow_id" in evt and captured_flow_id is None:
+                    captured_flow_id = evt["flow_id"]
+                # status / validation_errors / preview_url / endpoint_uri_default
+                # are already forwarded above — nothing else needed here
+
         except Exception as exc:  # noqa: BLE001
             yield f"data: {json.dumps({'error': str(exc)})}\n\n"
         finally:
             await gen_response.aclose()
             await gen_client.aclose()
 
-        yield "data: [DONE]\n\n"
-
         full_text = "".join(accumulated)
-        if not full_text:
+        if not full_text and captured_flow_id is None:
             return
 
-        # Post-stream persistence uses a fresh session (Depends session is closed)
+        # fresh session — the Depends() one is closed by now
         async with AsyncSessionLocal() as new_db:
-            assistant_msg = Message(
-                session_id=session_id,
-                role=MessageRole.assistant,
-                content=full_text,
-            )
-            new_db.add(assistant_msg)
-            await new_db.commit()
-            await new_db.refresh(assistant_msg)
-
             sess_result = await new_db.exec(
                 select(Session).where(Session.id == session_id)
             )
             sess = sess_result.first()
-            if sess:
-                sess.updated_at = datetime.now(timezone.utc)
+
+            if full_text:
+                assistant_msg = Message(
+                    session_id=session_id,
+                    role=MessageRole.assistant,
+                    content=full_text,
+                )
+                new_db.add(assistant_msg)
+                await new_db.commit()
+                await new_db.refresh(assistant_msg)
+
+                if sess:
+                    sess.updated_at = datetime.now(timezone.utc)
+                    if captured_flow_id and not sess.aisensy_flow_id:
+                        sess.aisensy_flow_id = captured_flow_id
+                    new_db.add(sess)
+
+                json_block, py_block = _extract_code_blocks(full_text)
+                output_dir = Path(GENERATED_DIR) / str(session_id)
+                output_dir.mkdir(parents=True, exist_ok=True)
+
+                if json_block:
+                    json_path = output_dir / f"{assistant_msg.id}.json"
+                    json_path.write_text(json_block, encoding="utf-8")
+                    new_db.add(
+                        GeneratedFile(
+                            session_id=session_id,
+                            message_id=assistant_msg.id,
+                            file_type=GeneratedFileType.flow_json,
+                            file_path=str(json_path),
+                            version=version,
+                        )
+                    )
+
+                if py_block:
+                    py_path = output_dir / f"{assistant_msg.id}.py"
+                    py_path.write_text(py_block, encoding="utf-8")
+                    new_db.add(
+                        GeneratedFile(
+                            session_id=session_id,
+                            message_id=assistant_msg.id,
+                            file_type=GeneratedFileType.handler_py,
+                            file_path=str(py_path),
+                            version=version,
+                        )
+                    )
+            elif sess and captured_flow_id and not sess.aisensy_flow_id:
+                sess.aisensy_flow_id = captured_flow_id
                 new_db.add(sess)
-
-            json_block, py_block = _extract_code_blocks(full_text)
-            output_dir = Path(GENERATED_DIR) / str(session_id)
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            if json_block:
-                json_path = output_dir / f"{assistant_msg.id}.json"
-                json_path.write_text(json_block, encoding="utf-8")
-                new_db.add(
-                    GeneratedFile(
-                        session_id=session_id,
-                        message_id=assistant_msg.id,
-                        file_type=GeneratedFileType.flow_json,
-                        file_path=str(json_path),
-                        version=version,
-                    )
-                )
-
-            if py_block:
-                py_path = output_dir / f"{assistant_msg.id}.py"
-                py_path.write_text(py_block, encoding="utf-8")
-                new_db.add(
-                    GeneratedFile(
-                        session_id=session_id,
-                        message_id=assistant_msg.id,
-                        file_type=GeneratedFileType.handler_py,
-                        file_path=str(py_path),
-                        version=version,
-                    )
-                )
 
             await new_db.commit()
 

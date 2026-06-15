@@ -36,6 +36,10 @@ class Session(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True)),
     )
+    aisensy_flow_id: str | None = Field(default=None)
+    endpoint_uri: str | None = Field(default=None)
+    flow_status: str = Field(default="draft")  # "draft" | "published"
+    flow_category: str | None = Field(default=None)
 
 
 class Message(SQLModel, table=True):

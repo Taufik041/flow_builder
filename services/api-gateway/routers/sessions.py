@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from database import get_session as get_db_session
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from models import Message, Session
 from sqlalchemy.ext.asyncio.session import AsyncSession as SQLModelAsyncSession
 from sqlmodel import select
@@ -68,3 +68,21 @@ async def delete_session(
     await db.delete(session)
     await db.commit()
     return {"deleted": str(session_id)}
+
+
+@router.patch("/{session_id}")
+async def rename_session(
+    session_id: UUID,
+    request: Request,
+    title: str = Body(..., embed=True),
+    db: SQLModelAsyncSession = Depends(get_db_session),
+):
+    result = await db.exec(select(Session).where(Session.id == session_id))
+    session = result.first()
+    if not session or session.user_id != UUID(request.state.user_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    session.title = title
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+    return session

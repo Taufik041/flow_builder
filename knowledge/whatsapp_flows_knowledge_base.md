@@ -65,10 +65,39 @@ The agent must never hallucinate. Where context is missing, leave a TODO placeho
 }
 ```
 
-- `terminal: true` only on the last screen.
-- `terminal: false` on all other screens.
 - `data` block: declare `meta_data` + every field referenced via `${data.x}`.
 - In `7.1`: omit `data` block entirely if preferred.
+
+### 4.1 Terminal screen — MANDATORY, non-negotiable
+
+Every flow MUST have **exactly one** terminal screen. This is enforced by Meta's
+Flow Builder and a flow without it will not validate.
+
+1. The **last screen** in the flow (the one whose `routing_model` array is `[]`,
+   i.e. nothing routes onward from it) MUST have `"terminal": true`.
+2. ALL other screens MUST have `"terminal": false`.
+3. The terminal/`complete` pairing is strict and goes both ways:
+   - The terminal screen's Footer action MUST be `"name": "complete"`.
+   - `"name": "complete"` MUST ONLY appear on the screen marked `"terminal": true`.
+   - EVERY non-terminal screen's Footer action MUST be `"name": "data_exchange"`.
+
+Putting `"complete"` on a non-terminal screen, or marking no screen terminal,
+are the two most common validation failures. Before emitting a flow, verify:
+- exactly one screen has `terminal: true`
+- that same screen (and only that screen) uses `complete`
+- every other footer uses `data_exchange`
+
+**Correct terminal screen footer:**
+```json
+{
+    "type": "Footer",
+    "label": "Submit",
+    "on-click-action": {
+        "name": "complete",
+        "payload": { "footer": "TERMINAL_SCREEN_ID", "form": "${form}", "meta_data": "${data.meta_data}" }
+    }
+}
+```
 
 ---
 
@@ -380,30 +409,32 @@ except Exception as e:
 
 ---
 
-## 16. Static / POC Mode
+## 16. Static / POC Mode (opt-in ONLY)
 
-For demos with no backend:
+POC mode is NEVER the default. Always generate a production flow (backend-connected,
+`data_exchange` everywhere, with a FastAPI handler) UNLESS the user EXPLICITLY asks
+for a POC, demo, static, mockup, or no-backend flow.
+
+If — and only if — the user explicitly requests POC/demo/static mode:
 - Use hardcoded `true` for `required` fields — never `"${data.reqd}"`
-- No `data_exchange` on footers — use `"name": "navigate"` instead
-- No `${data.x}` references that require backend to populate
+- Screen transitions use `"name": "navigate"` (there is no backend, so
+  `data_exchange` is impossible — see Section 24)
+- No `data_exchange` on footers or links; no backend handler is generated
+- `${data.x}` references that require backend population must not be used
 - `type: if` still works for UI logic
 
----
+If the user does NOT mention POC/demo/static: ignore this section entirely. Use
+`data_exchange` for all transitions (Section 24) and generate the backend handler.
 
-## 17. DB Logging
-
-Every transition logged to `FlowLogs`:
-```python
-# fields: current (screen name), msg, type, error
-# type values: INFO | USER_ERROR | API_ERROR | FLOW_ERROR
-```
-
-`screen_mapper` maps screen IDs to readable names:
-```python
-screen_mapper = {
-    "PERSONAL_DETAILS_PAGE": "Personal Details",
-    "ADDRESS_PAGE": "Address",
-    # ...
+**navigate action shape (POC mode only):**
+```json
+{
+    "type": "Footer",
+    "label": "Continue",
+    "on-click-action": {
+        "name": "navigate",
+        "next": { "type": "screen", "name": "NEXT_SCREEN_ID" }
+    }
 }
 ```
 
@@ -560,6 +591,27 @@ async def flow_name_handler(body: dict = Body(...)):
 | If block | `if` | Conditional rendering, 6.0+ |
 | Switch block | `switch` | Multi-condition rendering, 6.0+ |
 
+
+### 20.1 TextInput `input-type` — fixed enum (non-negotiable)
+
+`input-type` on TextInput MUST be exactly one of these six values. No others are
+valid — Meta rejects anything else with INVALID_ENUM_VALUE.
+
+| Use for | input-type |
+|---|---|
+| Names, free text, addresses | `text` |
+| Numbers, age, quantity, OTP, PIN | `number` |
+| Phone / mobile number | `phone` |
+| Email address | `email` |
+| Masked password | `password` |
+| Masked numeric passcode | `passcode` |
+
+Common mistakes to NEVER make: `tel`, `mobile`, `numeric`, `string`, `int`,
+`tel-number`. Map them: phone/mobile/tel → `phone`; numeric/int/number → `number`;
+string/free text → `text`.
+
+If unsure, default to `text`.
+
 ---
 
 ## 21. Adding New Workarounds
@@ -578,7 +630,9 @@ When a new pattern or workaround is discovered, add a section here following thi
 Current workarounds:
 - **WA-001** (Section 13): Large dropdown >200 items → TextInput + EmbeddedLink trigger + hidden RadioButtonsGroup
 - **WA-002** (Section 10): Mixed static+dynamic strings → use backtick syntax
-
+- **WA-003** (Section 22): `flow_token` parsing → exact positional unpacking only
+- **WA-004** (Section 4.1): Terminal screen + `complete`/`data_exchange` pairing
+- **WA-005** (Section 24): Navigation → `data_exchange` only (production), `navigate` only in POC
 ---
 
 ## 22: flow_token Parsing
@@ -591,6 +645,72 @@ flow_token = decrypted_data["flow_token"]
 flowid, mobile, user_language = flow_token.split("_")
 ```
 **Example:** Token `"FL001_9876543210_en"` → `flowid="FL001"`, `mobile="9876543210"`, `user_language="en"`
+
+**Versions:** All versions.
+
+---
+
+## 23. Backend Handler Endpoint Convention (non-negotiable)
+
+The generated FastAPI handler for a flow serving service `xyz` MUST:
+- Define its router so the handler resolves at `POST /{service}` (e.g. `/sebc`).
+- Be included via `app.include_router(api_router, tags=['xyz'])` in the service's
+  `__init__.py`, under the fixed prefix `/api/v1/flow/{service}`.
+- Therefore the live data-exchange URL is:
+  `https://{host}/api/v1/flow/{service}/{service}`
+  e.g. `https://whatsapp.bipros.com:10443/api/v1/flow/sebc/sebc`
+
+When generating the handler, follow this path convention exactly. The flow's
+`endpoint_uri` (set via the lifecycle API) MUST match this URL for the deployed service.
+
+---
+
+## 24. Navigation — `data_exchange` only, never `navigate` (non-negotiable)
+
+By default, ALL screen-to-screen movement goes through the backend via
+`data_exchange`. The `navigate` action is FORBIDDEN in the default (production)
+mode — not on Footers, not on EmbeddedLinks, not anywhere.
+
+The ONLY exception is POC/demo/static mode (Section 16), where no backend exists
+and `data_exchange` is therefore impossible — `navigate` is the required navigation
+mechanism in that mode. In every other case (the default), the backend exists and
+`navigate` must never appear. Decide by backend presence: backend exists →
+`data_exchange`; no backend (POC) → `navigate`.
+
+**Why:** every transition must hit the backend so `meta_data` accumulates, logging
+fires, and the endpoint stays the single source of truth. `navigate` bypasses all
+of that.
+
+- A Footer moving to the next screen → `"name": "data_exchange"`, payload carries
+  `"footer": "CURRENT_SCREEN_ID"`. The backend returns the next screen.
+- A tappable link that should move screens (e.g. "Register", "Login") → still
+  `"name": "data_exchange"` with a `trigger`. The backend returns the target screen
+  in its response.
+
+**WRONG (production mode):**
+```json
+{
+    "type": "EmbeddedLink",
+    "text": "Register",
+    "on-click-action": {
+        "name": "navigate",
+        "payload": { "next": "REGISTER" }
+    }
+}
+```
+
+**CORRECT (production mode):**
+```json
+{
+    "type": "EmbeddedLink",
+    "text": "Register",
+    "on-click-action": {
+        "name": "data_exchange",
+        "payload": { "trigger": "go_register", "meta_data": "${data.meta_data}" }
+    }
+}
+```
+Backend handles the `go_register` trigger and returns `{"screen": "REGISTER", "data": {...}}`.
 
 **Versions:** All versions.
 

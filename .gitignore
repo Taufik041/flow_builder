@@ -210,3 +210,13 @@ __marimo__/
 *.db
 *.db-shm
 *.db-wal
+
+# Next.js
+.next/
+out/
+node_modules/
+
+# env
+.env
+.env.local
+.env*.local

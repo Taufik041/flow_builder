@@ -17,6 +17,10 @@ PUBLIC_ROUTES = {
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # CORS preflight requests carry no auth header — let them through
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         if request.url.path in PUBLIC_ROUTES:
             return await call_next(request)
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from indexer import KNOWLEDGE_DIR, index_all
+from indexer import COLLECTION_NAME, KNOWLEDGE_DIR, client, index_all
 from pydantic import BaseModel
 from retriever import retrieve
 
@@ -12,6 +12,18 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    try:
+        collections = [c.name for c in client.get_collections().collections]
+        count = (
+            client.count(COLLECTION_NAME).count if COLLECTION_NAME in collections else 0
+        )
+    except Exception:
+        count = 0
+    if count == 0:
+        print("[startup] empty index — running index_all()")  # noqa: T201
+        print(index_all())  # noqa: T201
+    else:
+        print(f"[startup] index has {count} points, skipping")  # noqa: T201
     yield
 
 

@@ -79,16 +79,19 @@ services:
       - uploaded_files:/uploads
       - generated_files:/generated
 
-  # frontend:
-  #   build: ./frontend
-  #   env_file: .env
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - api-gateway
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
+  frontend:
+    build: ./frontend
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - WATCHPACK_POLLING=true
 
 volumes:
   postgres_data:

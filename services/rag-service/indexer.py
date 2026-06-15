@@ -95,3 +95,7 @@ def index_all() -> dict:
     client.upsert(collection_name=COLLECTION_NAME, points=points)
 
     return {"indexed": len(points), "filtered_out": filtered_out}
+
+
+if __name__ == "__main__":
+    result = index_all()
