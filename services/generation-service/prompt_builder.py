@@ -52,6 +52,40 @@ Output EXACTLY ONE code block: the complete Flow JSON.
 Do NOT generate any Python or backend code in this phase. The backend handler is
 generated in a separate later step, after this JSON is validated. Output only the
 JSON block, then (optionally) one or two sentences noting any TODOs in the JSON.
+
+
+Most common model mistake:`__example__`belongs at the ARRAY level, never inside `items`.
+Nesting `__example__` inside the `items` object fails with:
+`Required property '__example__' is missing` (reported on the array's `data` path).
+`__example__` is a sibling of `type` and `items`; its value is an ARRAY of example items
+(not a single object).
+`items` contains `properties` and `type` only — never `__example__`.
+
+❌ Wrong (`__example__` nested in `items`, value is an object, `properties` missing):
+```json
+"available_times": {
+  "type": "array",
+  "items": {
+    "type": "object",
+    "__example__": { "id": "1", "title": "18:00" }
+  }
+}
+```
+
+✅ Correct (`__example__` at array level as an array; `items` has `properties`):
+```json
+"available_times": {
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id":    { "type": "string" },
+      "title": { "type": "string" }
+    }
+  },
+  "__example__": [ { "id": "1", "title": "18:00" } ]
+}
+```
 """
         )
 

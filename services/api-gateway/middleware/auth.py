@@ -8,11 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 JWT_SECRET = os.getenv("JWT_SECRET", "test_secret_for_testing_only")
 JWT_ALGORITHM = "HS256"
 
-PUBLIC_ROUTES = {
-    "/health",
-    "/auth/register",
-    "/auth/login",
-}
+PUBLIC_ROUTES = {"/health", "/auth/register", "/auth/login", "/auth/logout"}
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -24,7 +20,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.url.path in PUBLIC_ROUTES:
             return await call_next(request)
 
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        token = request.cookies.get("access_token")
+        if not token:
+            token = request.headers.get("Authorization", "").replace("Bearer ", "")
+
         if not token:
             return JSONResponse(status_code=401, content={"detail": "Missing token"})
 

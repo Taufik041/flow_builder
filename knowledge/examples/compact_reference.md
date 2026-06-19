@@ -17,9 +17,8 @@
 }
 ```
 
-- Default version is **7.3**. Use 7.1 only if explicitly requested.
+- Default version is **7.3**.
 - In **7.3**: every screen must have `"data": {}` even if empty.
-- In **7.1**: `"data": {}` can be omitted entirely.
 - The last screen in routing_model has an empty array `[]`.
 - Terminal screen (last screen with `complete` action) must have `"terminal": true`.
 
@@ -33,11 +32,32 @@
   "title": "Personal Details",
   "terminal": false,
   "data": {
-    "reqd": { "type": "boolean", "__example__": true },
-    "meta_data": { "type": "object", "__example__": {} },
-    "caste_data": { "type": "array", "__example__": [{"id":"1","title":"Example"}] },
-    "caste_visible": { "type": "boolean", "__example__": false },
-    "footer_enabled": { "type": "boolean", "__example__": true }
+    "reqd": {"type": "boolean","__example__": true},
+    "footer_enabled": {"type": "boolean","__example__": true},
+    "caste_visible": {"type": "boolean","__example__": true},
+    "meta_data": {"type": "object","__example__": {}},
+    "caste_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"}
+        }
+      },
+      "__example__": []
+    },
+    "Resolution_No": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"}
+        }
+      },
+      "__example__": []
+    }
   },
   "layout": {
     "type": "SingleColumnLayout",
@@ -47,6 +67,7 @@
 ```
 
 Rules:
+
 - Screen IDs are SCREAMING_SNAKE_CASE and descriptive (not SCREEN_1, SCREEN_2).
 - `"required": "${data.reqd}"` — never use boolean literals for required fields.
 - `meta_data` is always declared as `type: object, __example__: {}` in every screen's data block.
@@ -238,217 +259,698 @@ Each selection triggers backend to return the next level's data source:
 
 ### Component Naming Conventions
 
-| Rule | Example |
-|---|---|
-| Component `name` | `snake_case` |
-| Component `label` | `Title Case` |
-| Screen `id` | `SCREAMING_SNAKE_CASE` |
-| Trigger string | `snake_case` |
-| Footer string | `SCREAMING_SNAKE_CASE` matching screen id |
+| Rule              | Example                                   |
+| ----------------- | ----------------------------------------- |
+| Component `name`  | `snake_case`                              |
+| Component `label` | `Title Case`                              |
+| Screen `id`       | `SCREAMING_SNAKE_CASE`                    |
+| Trigger string    | `snake_case`                              |
+| Footer string     | `SCREAMING_SNAKE_CASE` matching screen id |
 
 ---
 
-### Full Example Flow (7.1, 3 screens: LOGIN → PERSONAL_DETAILS → ADDRESS)
+### Full Example Flow (7.3, 3 screens: LOGIN → PERSONAL_DETAILS → ADDRESS)
 
 ```json
 {
-  "version": "7.1",
-  "data_api_version": "3.0",
-  "routing_model": {
-    "LOGIN": ["PERSONAL_DETAILS"],
-    "PERSONAL_DETAILS": ["ADDRESS"],
-    "ADDRESS": []
-  },
-  "screens": [
-    {
-      "id": "LOGIN",
-      "title": "Login",
-      "data": {
-        "reqd": { "type": "boolean", "__example__": true },
-        "otp_sent": { "type": "boolean", "__example__": false },
-        "meta_data": { "type": "object", "__example__": {} }
-      },
-      "layout": {
-        "type": "SingleColumnLayout",
-        "children": [
-          { "type": "Image", "src": "BASE64_ENCODED_IMAGE_HERE", "height": 85, "scale-type": "cover" },
-          { "type": "TextBody", "font-weight": "bold", "text": "Login for existing users", "visible": true },
-          { "type": "TextInput", "name": "user_id", "label": "User ID (Email/Mobile)", "required": "${data.reqd}" },
-          {
-            "type": "EmbeddedLink",
-            "text": "Get OTP",
-            "on-click-action": {
-              "name": "data_exchange",
-              "payload": { "trigger": "get_otp", "username": "${form.user_id}", "meta_data": "${data.meta_data}" }
-            }
-          },
-          { "type": "TextInput", "name": "OTP", "label": "OTP", "input-type": "number", "max-chars": 6, "min-chars": 6, "required": "${data.reqd}" },
-          { "type": "OptIn", "name": "consent", "label": "I understand and wish to continue.", "required": true },
-          {
-            "type": "Footer",
-            "label": "Verify OTP",
-            "enabled": "${data.otp_sent}",
-            "on-click-action": {
-              "name": "data_exchange",
-              "payload": { "footer": "LOGIN", "form": "${form}", "meta_data": "${data.meta_data}" }
-            }
-          }
-        ]
-      }
+    "version": "7.3",
+    "data_api_version": "3.0",
+    "routing_model": {
+        "LOGIN": [
+            "PERSONAL_DETAILS"
+        ],
+        "PERSONAL_DETAILS": [
+            "ADDRESS"
+        ],
+        "ADDRESS": []
     },
-    {
-      "id": "PERSONAL_DETAILS",
-      "title": "Personal Details",
-      "data": {
-        "reqd": { "type": "boolean", "__example__": true },
-        "footer_enabled": { "type": "boolean", "__example__": false },
-        "caste_visible": { "type": "boolean", "__example__": false },
-        "caste_data": { "type": "array", "__example__": [{"id": "1", "title": "Example Caste"}] },
-        "Resolution_No": { "type": "array", "__example__": [{"id": "1", "title": "Res 1"}] },
-        "meta_data": { "type": "object", "__example__": {} }
-      },
-      "layout": {
-        "type": "SingleColumnLayout",
-        "children": [
-          {
-            "type": "PhotoPicker",
-            "name": "photo_picker",
-            "label": "Applicant Photo",
-            "photo-source": "camera_gallery",
-            "max-uploaded-photos": 1,
-            "min-uploaded-photos": 1,
-            "max-file-size-kb": 200
-          },
-          {
-            "type": "EmbeddedLink",
-            "text": "Upload",
-            "on-click-action": {
-              "name": "data_exchange",
-              "payload": { "trigger": "photo_upload_trigger", "photo_picker": "${form.photo_picker}", "meta_data": "${data.meta_data}" }
-            }
-          },
-          { "type": "TextInput", "name": "caste_input", "label": "Name of Your Caste/Tribe", "required": "${data.reqd}" },
-          {
-            "type": "EmbeddedLink",
-            "text": "Search your caste/tribe",
-            "on-click-action": {
-              "name": "data_exchange",
-              "payload": { "trigger": "caste_search", "caste": "${form.caste_input}" }
-            }
-          },
-          {
-            "type": "RadioButtonsGroup",
-            "name": "selected_caste",
-            "label": "Select Your Caste/Tribe",
-            "visible": "${data.caste_visible}",
-            "data-source": "${data.caste_data}",
-            "required": "${data.reqd}",
-            "on-select-action": {
-              "name": "data_exchange",
-              "payload": { "trigger": "caste", "selected_caste": "${form.selected_caste}" }
-            }
-          },
-          {
-            "type": "Dropdown",
-            "name": "Resolution_No",
-            "label": "Resolution No.",
-            "required": "${data.reqd}",
-            "data-source": "${data.Resolution_No}",
-            "on-select-action": {
-              "name": "data_exchange",
-              "payload": { "trigger": "Resolution_No", "selected_Resolution_No": "${form.Resolution_No}" }
-            }
-          },
-          {
-            "type": "Footer",
-            "label": "Continue",
-            "enabled": "${data.footer_enabled}",
-            "on-click-action": {
-              "name": "data_exchange",
-              "payload": { "footer": "PERSONAL_DETAILS", "form": "${form}", "meta_data": "${data.meta_data}" }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "ADDRESS",
-      "title": "Address",
-      "terminal": true,
-      "data": {
-        "reqd": { "type": "boolean", "__example__": true },
-        "all_pre_district": { "type": "array", "__example__": [{"id": "1", "title": "District 1"}] },
-        "all_pre_subdivision": { "type": "array", "__example__": [{"id": "1", "title": "Subdivision 1"}] },
-        "pre_dist_init": { "type": "string", "__example__": "" },
-        "present_village_enabled": { "type": "boolean", "__example__": true },
-        "pre_vill_reqd": { "type": "boolean", "__example__": true },
-        "meta_data": { "type": "object", "__example__": {} }
-      },
-      "layout": {
-        "type": "SingleColumnLayout",
-        "children": [
-          { "type": "TextSubheading", "text": "Present Address" },
-          {
-            "type": "Dropdown",
-            "name": "present_district",
-            "label": "District",
-            "required": "${data.reqd}",
-            "init-value": "${data.pre_dist_init}",
-            "data-source": "${data.all_pre_district}",
-            "on-select-action": {
-              "name": "data_exchange",
-              "payload": { "trigger": "present_district", "present_district": "${form.present_district}", "meta_data": "${data.meta_data}" }
-            }
-          },
-          {
-            "type": "Dropdown",
-            "name": "present_subdivision",
-            "label": "Subdivision",
-            "required": "${data.reqd}",
-            "data-source": "${data.all_pre_subdivision}",
-            "on-select-action": {
-              "name": "data_exchange",
-              "payload": { "trigger": "present_subdivision", "present_subdivision": "${form.present_subdivision}", "meta_data": "${data.meta_data}" }
-            }
-          },
-          {
-            "type": "RadioButtonsGroup",
-            "name": "present_permanent",
-            "label": "Present address same as permanent address?",
-            "required": "${data.reqd}",
-            "data-source": [{"id": "1", "title": "Yes"}, {"id": "2", "title": "No"}]
-          },
-          {
-            "type": "If",
-            "condition": "${form.present_permanent} == '2'",
-            "then": [
-              { "type": "TextSubheading", "text": "Permanent Address" },
-              {
-                "type": "Dropdown",
-                "name": "permanent_district",
-                "label": "District",
-                "required": "${data.reqd}",
-                "data-source": "${data.all_per_district}",
-                "on-select-action": {
-                  "name": "data_exchange",
-                  "payload": { "trigger": "permanent_district", "permanent_district": "${form.permanent_district}", "meta_data": "${data.meta_data}" }
+    "screens": [
+        {
+            "id": "LOGIN",
+            "title": "LOGIN EXAMPLE",
+            "data": {
+                "reqd": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "otp_sent": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "password_url": {
+                    "type": "string",
+                    "__example__": ""
+                },
+                "meta_data": {
+                    "type": "object",
+                    "__example__": {}
                 }
-              }
-            ]
-          },
-          {
-            "type": "Footer",
-            "label": "Submit",
-            "on-click-action": {
-              "name": "complete",
-              "payload": { "footer": "ADDRESS", "form": "${form}", "meta_data": "${data.meta_data}" }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "Image",
+                        "src": "BASE64_ENCODED_IMAGE_HERE",
+                        "height": 85,
+                        "scale-type": "cover"
+                    },
+                    {
+                        "type": "TextBody",
+                        "font-weight": "bold",
+                        "text": "Login for the existing User of eDistrict/ Service Plus",
+                        "visible": true
+                    },
+                    {
+                        "type": "TextInput",
+                        "visible": true,
+                        "label": "User ID (Email/Mobile)",
+                        "name": "user_id",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Get OTP",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "get_otp",
+                                "username": "${form.user_id}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "TextInput",
+                        "visible": true,
+                        "label": "OTP",
+                        "max-chars": 6,
+                        "min-chars": 6,
+                        "input-type": "number",
+                        "name": "OTP",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Don't have account? Register",
+                        "on-click-action": {
+                            "name": "open_url",
+                            "url": "${data.password_url}"
+                        }
+                    },
+                    {
+                        "type": "TextCaption",
+                        "text": "⚠️ Important Instructions\n\n- Your session will expire after 30 minutes.\n- Keep all mandatory documents ready (passport size photo,Aadhar card)\n- Unsaved data may be lost after the session timeout."
+                    },
+                    {
+                        "type": "OptIn",
+                        "label": "I understand and wish to continue.",
+                        "name": "q",
+                        "required": true
+                    },
+                    {
+                        "type": "Footer",
+                        "label": "Verify OTP",
+                        "enabled": "${data.otp_sent}",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "footer": "LOGIN",
+                                "form": "${form}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    }
+                ]
             }
-          }
-        ]
-      }
-    }
-  ]
+        },
+        {
+            "id": "PERSONAL_DETAILS",
+            "title": "EXAMPLE",
+            "data": {
+                "reqd": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "footer_enabled": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "caste_visible": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "meta_data": {
+                    "type": "object",
+                    "__example__": {}
+                },
+                "caste_data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                },
+                "Resolution_No": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextBody",
+                        "text": "Fill all the details in BLOCK LETTERS",
+                        "visible": true
+                    },
+                    {
+                        "type": "PhotoPicker",
+                        "name": "photo_picker",
+                        "label": "Applicant photo",
+                        "photo-source": "camera_gallery",
+                        "max-uploaded-photos": 1,
+                        "min-uploaded-photos": 1,
+                        "max-file-size-kb": 200
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Upload",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "photo_upload_trigger",
+                                "photo_picker": "${form.photo_picker}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "name": "salutation",
+                        "label": "Salutation",
+                        "required": "${data.reqd}",
+                        "data-source": [
+                            {
+                                "id": "1",
+                                "title": "Shri"
+                            },
+                            {
+                                "id": "2",
+                                "title": "Smt"
+                            },
+                            {
+                                "id": "3",
+                                "title": "Miss"
+                            }
+                        ],
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "salutation",
+                                "salutation": "${form.salutation}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "Caste Details"
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "caste_input",
+                        "required": "${data.reqd}",
+                        "label": "Name of your Caste/Tribe"
+                    },
+                    {
+                        "type": "EmbeddedLink",
+                        "text": "Search your caste/tribe",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "caste_search",
+                                "caste": "${form.caste_input}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "RadioButtonsGroup",
+                        "name": "Caste",
+                        "label": "Select your caste/tribe",
+                        "visible": "${data.caste_visible}",
+                        "data-source": "${data.caste_data}",
+                        "required": "${data.reqd}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "caste",
+                                "selected_caste": "${form.Caste}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "name": "Resolution_No",
+                        "label": "Resolution No.",
+                        "required": "${data.reqd}",
+                        "data-source": "${data.Resolution_No}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "Resolution_No",
+                                "selected_Resolution_No": "${form.Resolution_No}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "CalendarPicker",
+                        "name": "choose_date",
+                        "label": "choose from calendar",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "DatePicker",
+                        "name": "pick a date",
+                        "label": "label for date",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "TextArea",
+                        "required": "${data.reqd}",
+                        "label": "Purpose",
+                        "name": "purpose"
+                    },
+                    {
+                        "type": "Footer",
+                        "enabled": "${data.footer_enabled}",
+                        "label": "Continue",
+                        "on-click-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "footer": "PERSONAL_DETAILS",
+                                "form": "${form}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "ADDRESS",
+            "title": "EXAMPLE",
+            "data": {
+                "reqd": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "pre_vill_reqd": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "per_vill_reqd": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "present_village_enabled": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "permanent_village_enabled": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "present_terms_enabled": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "permanent_terms_enabled": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "pre_dist_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "per_dist_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "pre_subdiv_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "per_subdiv_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "present_terms_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "permanent_terms_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "present_village_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "permanent_village_init":{
+                    "type": "string",
+                    "__example__": ""
+                },
+                "all_pre_district": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                },
+                "all_per_district": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                },
+                "all_pre_subdivision": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                },
+                "all_per_subdivision": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                },
+                "all_pre_village": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                },
+                "all_per_village": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": []
+                },
+                "meta_data": {
+                    "type": "object",
+                    "__example__": {}
+                }
+            },
+            "terminal": true,
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextSubheading",
+                        "text": "Present Address"
+                    },
+                    {
+                        "type": "Dropdown",
+                        "visible": true,
+                        "label": "District",
+                        "init-value": "${data.pre_dist_init}",
+                        "name": "present_district",
+                        "required": "${data.reqd}",
+                        "data-source": "${data.all_pre_district}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_district",
+                                "present_district": "${form.present_district}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "visible": true,
+                        "label": "Subdivision",
+                        "init-value": "${data.pre_subdiv_init}",
+                        "name": "present_subdivision",
+                        "required": "${data.reqd}",
+                        "data-source": "${data.all_pre_subdivision}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_subdivision",
+                                "present_subdivision": "${form.present_subdivision}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "Dropdown",
+                        "label": "Village",
+                        "name": "present_village",
+                        "init-value": "${data.present_village_init}",
+                        "required": "${data.pre_vill_reqd}",
+                        "data-source": "${data.all_pre_village}",
+                        "visible": "${data.present_village_enabled}",
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_village",
+                                "present_village": "${form.present_village}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "RadioButtonsGroup",
+                        "name": "present_terms",
+                        "init-value": "${data.present_terms_init}",
+                        "label": "Village Not in list",
+                        "enabled": "${data.present_terms_enabled}",
+                        "data-source": [
+                            {
+                                "id": "1",
+                                "title": "Click here"
+                            }
+                        ],
+                        "on-select-action": {
+                            "name": "data_exchange",
+                            "payload": {
+                                "trigger": "present_terms",
+                                "present_terms": "${form.present_terms}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    },
+                    {
+                        "type": "TextInput",
+                        "name": "village_not_in_list",
+                        "label": "Enter Your Village Name",
+                        "visible": "`${form.present_terms} =='1'`",
+                        "required": "${data.reqd}"
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "Permanent Address"
+                    },
+                    {
+                        "type": "RadioButtonsGroup",
+                        "visible": true,
+                        "label": "Present address same as permanent address?",
+                        "name": "present_permanent",
+                        "required": "${data.reqd}",
+                        "data-source": [
+                            {
+                                "id": "1",
+                                "title": "Yes"
+                            },
+                            {
+                                "id": "2",
+                                "title": "No"
+                            }
+                        ],
+                        "enabled": true,
+                        "media-size": "regular"
+                    },
+                    {
+                        "type": "If",
+                        "condition": "${form.present_permanent} =='2'",
+                        "then": [
+                            {
+                                "type": "TextSubheading",
+                                "text": "Permanent Address"
+                            },
+                            {
+                                "type": "Dropdown",
+                                "visible": true,
+                                "init-value": "${data.per_dist_init}",
+                                "label": "District",
+                                "name": "permanent_district",
+                                "required": "${data.reqd}",
+                                "data-source": "${data.all_per_district}",
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_district",
+                                        "permanent_district": "${form.permanent_district}",
+                                        "meta_data": "${data.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "Dropdown",
+                                "visible": true,
+                                "init-value": "${data.per_subdiv_init}",
+                                "label": "Subdivision",
+                                "name": "permanent_subdivision",
+                                "required": "${data.reqd}",
+                                "data-source": "${data.all_per_subdivision}",
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_subdivision",
+                                        "permanent_subdivision": "${form.permanent_subdivision}",
+                                        "meta_data": "${data.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "Dropdown",
+                                "label": "Village",
+                                "name": "permanent_village",
+                                "visible": "${data.permanent_village_enabled}",
+                                "required": "${data.per_vill_reqd}",
+                                "init-value": "${data.permanent_village_init}",
+                                "data-source": "${data.all_per_village}",
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_village",
+                                        "permanent_village": "${form.permanent_village}",
+                                        "meta_data": "${data.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "RadioButtonsGroup",
+                                "init-value": "${data.permanent_terms_init}",
+                                "name": "permanent_terms",
+                                "enabled": "${data.permanent_terms_enabled}",
+                                "label": "Village Not in list",
+                                "data-source": [
+                                    {
+                                        "id": "1",
+                                        "title": "Click Here"
+                                    }
+                                ],
+                                "on-select-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "trigger": "permanent_terms",
+                                        "permanent_terms": "${form.permanent_terms}",
+                                        "meta_data": "${data.meta_data}"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "TextInput",
+                                "name": "permanent_village_not_in_list",
+                                "label": "Enter Your Village Name",
+                                "visible": "`${form.permanent_terms} =='1'`",
+                                "required": "${data.reqd}"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "Footer",
+                        "label": "Continue",
+                        "on-click-action": {
+                            "name": "complete",
+                            "payload": {
+                                "footer": "ADDRESS",
+                                "form": "${form}",
+                                "meta_data": "${data.meta_data}"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
 }
+
 ```
 
 ---
@@ -513,6 +1015,7 @@ async def your_flow(body: dict = Body(...)):
 ### Trigger Handlers
 
 **get_otp** — Send OTP and re-render same screen with `otp_sent: True` to enable footer:
+
 ```python
 elif trigger_type == "get_otp":
     meta_data = decrypted_data["data"].get("meta_data", {})
@@ -529,6 +1032,7 @@ elif trigger_type == "get_otp":
 ```
 
 **photo_upload_trigger** — Validate photo, enable/disable footer:
+
 ```python
 elif trigger_type == "photo_upload_trigger":
     # TODO: Validate and convert photo to base64
@@ -565,6 +1069,7 @@ elif trigger_type == "photo_upload_trigger":
 ```
 
 **caste_search** — Search-index pattern, filter and return results:
+
 ```python
 elif trigger_type == "caste_search":
     meta_data = decrypted_data["data"].get("meta_data", {})
@@ -586,6 +1091,7 @@ elif trigger_type == "caste_search":
 ```
 
 **caste** — Selection triggers dependent data (Resolution No.):
+
 ```python
 elif trigger_type == "caste":
     selected_caste = decrypted_data["data"].get("selected_caste", "")
@@ -597,6 +1103,7 @@ elif trigger_type == "caste":
 ```
 
 **Dependent dropdown triggers** (district → subdivision → village — same pattern for each):
+
 ```python
 elif trigger_type == "present_district":
     present_district = decrypted_data["data"]["present_district"]
@@ -615,6 +1122,7 @@ elif trigger_type == "present_district":
 ### Footer Handlers
 
 **meta_data accumulation** — Every footer handler does this:
+
 ```python
 meta_data = decrypted_data["data"].get("meta_data", {})
 form = decrypted_data["data"].get("form", {})
@@ -622,6 +1130,7 @@ meta_data.update(form)
 ```
 
 **LOGIN footer** — Verify OTP, navigate to next screen:
+
 ```python
 if footer_type == "LOGIN":
     meta_data = decrypted_data["data"].get("meta_data", {})
@@ -644,6 +1153,7 @@ if footer_type == "LOGIN":
 ```
 
 **PERSONAL_DETAILS footer** — Validate photo in meta_data, navigate to ADDRESS:
+
 ```python
 elif footer_type == "PERSONAL_DETAILS":
     meta_data = decrypted_data["data"].get("meta_data", {})
@@ -670,6 +1180,7 @@ elif footer_type == "PERSONAL_DETAILS":
 ```
 
 **ADDRESS footer** — Final submission:
+
 ```python
 elif footer_type == "ADDRESS":
     meta_data = decrypted_data["data"].get("meta_data", {})
@@ -707,7 +1218,7 @@ get_all_messages("INVALID_OTP", user_language)
 2. Trigger payload always: `{ "trigger": "trigger_name", <specific_fields>, "meta_data": "${data.meta_data}" }`
 3. `meta_data.update(form)` on every footer handler — this accumulates all data across screens
 4. `"required": "${data.reqd}"` — never hardcode `true`/`false` for required
-5. Backtick syntax for mixed strings: `` "`${form.field} == '1'`" ``
+5. Backtick syntax for mixed strings: ``"`${form.field} == '1'`"``
 6. Screen response must include ALL data keys the screen declares — missing keys cause errors
 7. Multiple document upload is NOT supported — tell the user if asked
 8. Leave `# TODO:` comments for API calls, DB queries, business logic — do not hallucinate

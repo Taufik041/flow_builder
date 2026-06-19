@@ -16,10 +16,8 @@ The agent must never hallucinate. Where context is missing, leave a TODO placeho
 ## 2. Version Rules
 
 - Default version: `"7.3"` with `"data_api_version": "3.0"`
-- If user specifies `7.1`: use `"7.1"` with `"data_api_version": "3.0"`
 - No other versions supported.
 - In `7.3`: declare all fields used in the `data` block.
-- In `7.1`: the `data` block can be omitted entirely.
 - `type: if`, backtick strings, `ChipsSelector`, `ImageCarousel`, empty `data: {}` all require `7.1+`.
 
 ---
@@ -56,6 +54,21 @@ The agent must never hallucinate. Where context is missing, leave a TODO placeho
         "meta_data": { "type": "object", "__example__": {} },
         "field_name": { "type": "string", "__example__": "" },
         "field_name_init": { "type": "string", "__example__": "" },
+        "field_name_data_source": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    }
+                }
+            },
+            "__example__": []
+        },
         "field_name_visible": { "type": "boolean", "__example__": false }
     },
     "layout": {
@@ -66,7 +79,6 @@ The agent must never hallucinate. Where context is missing, leave a TODO placeho
 ```
 
 - `data` block: declare `meta_data` + every field referenced via `${data.x}`.
-- In `7.1`: omit `data` block entirely if preferred.
 
 ### 4.1 Terminal screen — MANDATORY, non-negotiable
 
@@ -136,6 +148,7 @@ Always use `"form": "${form}"` — never list individual fields.
 {
     "type": "Footer",
     "label": "Continue",
+    "enabled": "${data.footer_enabled}",
     "on-click-action": {
         "name": "data_exchange",
         "payload": {
@@ -474,6 +487,7 @@ async def flow_name_handler(body: dict = Body(...)):
                     "screen": "FIRST_SCREEN_ID",
                     "data": {
                         "reqd": True,
+                        "footer_enabled": False,
                         "meta_data": {},
                         # TODO: populate any init data for first screen
                     }
@@ -489,16 +503,19 @@ async def flow_name_handler(body: dict = Body(...)):
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "error": True,
+                                "footer_enabled": False,
                                 "error_message": get_all_messages("SELECT_VALID", user_language)
                             }
                         }
                     else:
                         # TODO: call API to get dependent data
+                        # valid selection and if it's last trigger of the screen → enable this screen's footer
                         response = {
                             "screen": decrypted_data["screen"],
                             "data": {
                                 "dependent_field": [],
                                 "dependent_field_init": "",
+                                "footer_enabled": True,
                                 "meta_data": decrypted_data["data"]["meta_data"]
                             }
                         }
@@ -517,6 +534,7 @@ async def flow_name_handler(body: dict = Body(...)):
                         "screen": "NEXT_SCREEN_ID",
                         "data": {
                             "reqd": True,
+                            "footer_enabled": False,
                             "meta_data": meta_data,
                             # TODO: populate any init data for next screen
                         }
@@ -713,6 +731,123 @@ of that.
 Backend handles the `go_register` trigger and returns `{"screen": "REGISTER", "data": {...}}`.
 
 **Versions:** All versions.
+
+---
+
+## 25 — Data declarations & dynamic-expression rules (Meta validator-enforced)
+
+These rules come from real AiSensy/Meta validation failures. Follow them exactly — the
+validator rejects anything else. (This section REPLACES the earlier draft that said arrays
+should omit `items`; that was wrong. Arrays REQUIRE a full `items` schema — see §25.2.)
+
+### 25.1 — `data` property declaration formats
+Every key in a screen's `data` object is declared as `{ "type": ..., "__example__": ... }`.
+Use a populated `__example__` so the live preview renders sample content.
+
+- boolean → `{ "type": "boolean", "__example__": true }`
+- string  → `{ "type": "string",  "__example__": "Sample text" }`
+- number  → `{ "type": "number",  "__example__": 1 }`
+- object  → `{ "type": "object",  "__example__": {} }`   (e.g. `meta_data`)
+- array (data-source for Dropdown / RadioButtonsGroup / CheckboxGroup) → see §25.2
+
+Standard keys every screen that has a Footer must declare: `meta_data` (object) and
+`footer_enabled` (boolean, `__example__: true`) — see §25.4.
+
+### 25.2 — Array data-source MUST declare a full `items` schema
+An array used as a `data-source` requires `items` with an explicit object schema.
+Declaring an array with only `type` + `__example__` (no `items`) fails validation:
+`Missing the schema for property 'items' in array`.
+
+✅ Correct:
+```json
+"all_movies": {
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id":    { "type": "string" },
+      "title": { "type": "string" }
+    }
+  },
+  "__example__": [
+    { "id": "1", "title": "Example Movie" }
+  ]
+}
+```
+
+❌ Wrong (no items schema):
+```json
+"all_movies": {
+  "type": "array",
+  "__example__": [ { "id": "1", "title": "Movie 1" } ]
+}
+```
+
+Data-source item objects use `id` + `title` at minimum. Optional per-item keys when the
+component supports them: `description`, `metadata`, `enabled`, `image` (base64). Every item's
+keys must match the declared `properties`. Keep a populated single-item `__example__` so the
+preview shows rows.
+
+### 25.3 — Ternary / conditional expressions are NOT supported
+Meta's expression engine rejects the ternary operator everywhere:
+`Operation ConditionalExpression is not supported`.
+Wrapping it in backticks does not help. Never emit `cond ? a : b` inside `${ ... }`.
+If a value depends on a condition, compute it in the FastAPI backend and pass the result as a
+`data` field.
+
+❌ `"${form.selected_movie != null ? 'true' : 'false'}"`  → returns a string AND uses an
+unsupported ternary. Two separate failures in one expression.
+
+### 25.4 — Footer `enabled` is ALWAYS backend-driven via `data.footer_enabled`
+A `Footer`'s `enabled` accepts ONLY a boolean literal or a `${data.*}` / `${screen.data.*}`
+reference that resolves to a boolean. It does NOT accept `${form.*}` expressions.
+`"enabled": "${form.x != null}"` fails with:
+`Property 'enabled' should be of type 'boolean' or have dynamic data format of the form
+${screen.data.your_value} or ${data.your_value}`.
+
+**MANDATORY PATTERN — never hardcode `true`/`false` in the component, never use `${form.*}`.**
+Every Footer's `enabled` MUST be `"${data.footer_enabled}"`, with the value controlled by the
+FastAPI backend. This keeps gating logic in one place (the backend) so the generated flow JSON
+never needs hand-editing to change when the Next/Submit button activates.
+
+Required for every screen that has a Footer:
+
+1. Declare `footer_enabled` in the screen's `data`:
+   ```json
+   "footer_enabled": { "type": "boolean", "__example__": true }
+   ```
+   Use `"__example__": true` so Meta's live preview (which renders from `__example__`, not the
+   backend) shows an enabled footer and stays navigable.
+
+2. Set the Footer's `enabled` to the data ref:
+   ```json
+   {
+     "type": "Footer",
+     "label": "Next",
+     "enabled": "${data.footer_enabled}",
+     "on-click-action": {
+       "name": "data_exchange",
+       "payload": { "footer": "SELECT_MOVIE", "form": "${form}", "meta_data": "${data.meta_data}" }
+     }
+   }
+   ```
+
+3. The backend owns the value:
+   - On screen entry (the data_exchange response that renders the screen), send
+     `"footer_enabled": false` so the footer starts disabled.
+   - In the data_exchange handler for that screen's `on-select-action`, evaluate whether the
+     screen's required selection(s) are satisfied and return `"footer_enabled": true` once they
+     are (or `false` to disable again).
+   - Compute any conditional logic here in Python — never as a ternary in the flow JSON (§25.3).
+
+This applies to the final/terminal screen's `complete`-action Footer too: gate it on
+`${data.footer_enabled}` and have the backend enable it only when the terminal selection is valid.
+
+### 25.5 — Where `${data.*}` boolean refs ARE allowed
+Non-Footer boolean props accept `${data.*}` boolean references — this is already the
+convention, e.g. `"required": "${data.reqd}"`. Only the Footer `enabled` carries the extra
+restriction in §25.4. `${form.*}` is fine for passing form values inside payloads
+(`"form": "${form}"`), just not as a Footer `enabled` condition.
 
 ---
 

@@ -2,9 +2,9 @@ from uuid import UUID
 
 from database import get_session as get_db_session
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
-from models import Message, Session
+from models import GeneratedFile, Message, Session, UploadedFile
 from sqlalchemy.ext.asyncio.session import AsyncSession as SQLModelAsyncSession
-from sqlmodel import select
+from sqlmodel import delete, select
 
 router = APIRouter(prefix="/sessions")
 
@@ -65,6 +65,11 @@ async def delete_session(
     session = result.first()
     if not session or session.user_id != UUID(request.state.user_id):
         raise HTTPException(status_code=404, detail="Session not found")
+    await db.execute(
+        delete(GeneratedFile).where(GeneratedFile.session_id == session_id)
+    )
+    await db.execute(delete(Message).where(Message.session_id == session_id))
+    await db.execute(delete(UploadedFile).where(UploadedFile.session_id == session_id))
     await db.delete(session)
     await db.commit()
     return {"deleted": str(session_id)}

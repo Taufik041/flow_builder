@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F9F8F6; --surface:#FFFFFF; --text:#3D3A34; --text2:#6B6657; --text3:#8A8576; --text4:#A29D90;
+    --border:rgba(61,58,52,0.12); --border2:rgba(61,58,52,0.2); --accentSoft:rgba(201,100,66,0.12);
+    --red:#B5564A; --redText:#9E4A3F; --redBg:rgba(181,86,74,0.06); --redBorder:rgba(181,86,74,0.24);
+  }
+  [data-theme="dark"] {
+    --bg:#1C1A17; --surface:#2A2621; --text:#F0EDE8; --text2:#C9C2B6; --text3:#A39C90; --text4:#837C70;
+    --border:rgba(240,237,232,0.11); --border2:rgba(240,237,232,0.2); --accentSoft:rgba(201,100,66,0.22);
+    --red:#E58B7C; --redText:#E8A89B; --redBg:rgba(229,139,124,0.10); --redBorder:rgba(229,139,124,0.30);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  input { font-family: inherit; }
+  ::selection { background: rgba(201,100,66,0.18); }
+  .auth-input:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--accentSoft) !important; }
+  .auth-submit:hover { background: #B5512F !important; }
+  .auth-link:hover { color: #B5512F !important; }
+</style>
+</helmet>
+
+<div ref="{{ rootRef }}" style="--accent:#C96442; min-height:100vh; width:100%; background:var(--bg); color:var(--text); font-family:Inter, system-ui, sans-serif; -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 24px; position:relative;">
+
+  <!-- theme toggle -->
+  <button onClick="{{ toggleTheme }}" title="Toggle theme" style="position:fixed; top:18px; right:18px; width:38px; height:38px; display:flex; align-items:center; justify-content:center; border:0.5px solid var(--border2); background:var(--surface); border-radius:10px; cursor:pointer; color:var(--text3);">
+    <sc-if value="{{ themeIsDark }}" hint-placeholder-val="{{ false }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+    </sc-if>
+    <sc-if value="{{ themeIsLight }}" hint-placeholder-val="{{ true }}">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </sc-if>
+  </button>
+
+  <!-- brand -->
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:26px;">
+    <div style="width:30px; height:30px; border-radius:8px; background:var(--accent); display:flex; align-items:center; justify-content:center;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"></circle><circle cx="18" cy="18" r="2.4"></circle><path d="M8 6h7a3 3 0 0 1 3 3v6.5"></path></svg>
+    </div>
+    <span style="font-size:16px; font-weight:600; letter-spacing:-0.01em;">Flow generator</span>
+  </div>
+
+  <!-- card -->
+  <div style="width:100%; max-width:380px; background:var(--surface); border:0.5px solid var(--border); border-radius:16px; box-shadow:0 1px 3px rgba(61,58,52,0.05); padding:32px 32px 28px; display:flex; flex-direction:column; gap:20px;">
+
+    <!-- heading -->
+    <sc-if value="{{ loginMode }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; flex-direction:column; gap:5px;">
+      <h1 style="margin:0; font-size:22px; font-weight:600; letter-spacing:-0.015em; color:var(--text);">Log in</h1>
+      <p style="margin:0; font-size:14px; line-height:1.5; color:var(--text3);">Welcome back — sign in to continue.</p>
+    </div>
+    </sc-if>
+    <sc-if value="{{ registerMode }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; flex-direction:column; gap:5px;">
+      <h1 style="margin:0; font-size:22px; font-weight:600; letter-spacing:-0.015em; color:var(--text);">Create account</h1>
+      <p style="margin:0; font-size:14px; line-height:1.5; color:var(--text3);">Set up your account to get started.</p>
+    </div>
+    </sc-if>
+
+    <!-- inline error -->
+    <sc-if value="{{ showError }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; align-items:center; gap:9px; padding:9px 12px; background:var(--redBg); border:0.5px solid var(--redBorder); border-radius:10px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+      <span style="font-size:13px; line-height:1.4; color:var(--redText);">Invalid credentials. Please try again.</span>
+    </div>
+    </sc-if>
+
+    <!-- fields -->
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <label style="display:flex; flex-direction:column; gap:6px;">
+        <span style="font-size:12.5px; font-weight:500; color:var(--text2);">Email</span>
+        <input class="auth-input" type="email" placeholder="you@company.com" style="width:100%; border:0.5px solid var(--border2); border-radius:10px; padding:11px 13px; font-size:14px; color:var(--text); background:var(--surface); outline:none; transition:border-color .12s ease, box-shadow .12s ease;">
+      </label>
+      <label style="display:flex; flex-direction:column; gap:6px;">
+        <span style="font-size:12.5px; font-weight:500; color:var(--text2);">Password</span>
+        <input class="auth-input" type="password" placeholder="••••••••" style="width:100%; border:0.5px solid var(--border2); border-radius:10px; padding:11px 13px; font-size:14px; color:var(--text); background:var(--surface); outline:none; transition:border-color .12s ease, box-shadow .12s ease;">
+      </label>
+    </div>
+
+    <!-- submit -->
+    <button class="auth-submit" style="width:100%; border:none; background:var(--accent); color:#FFFFFF; border-radius:10px; padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; font-family:inherit; transition:background .12s ease;">
+      <sc-if value="{{ loginMode }}" hint-placeholder-val="{{ true }}">Log in</sc-if>
+      <sc-if value="{{ registerMode }}" hint-placeholder-val="{{ false }}">Create account</sc-if>
+    </button>
+
+    <!-- switch -->
+    <div style="text-align:center; font-size:13.5px; color:var(--text3);">
+      <sc-if value="{{ loginMode }}" hint-placeholder-val="{{ true }}">
+        Don't have an account?
+        <button class="auth-link" onClick="{{ toggleMode }}" style="border:none; background:none; padding:0 0 0 3px; font-size:13.5px; font-weight:600; color:var(--accent); cursor:pointer; font-family:inherit; transition:color .12s ease;">Register</button>
+      </sc-if>
+      <sc-if value="{{ registerMode }}" hint-placeholder-val="{{ false }}">
+        Already have an account?
+        <button class="auth-link" onClick="{{ toggleMode }}" style="border:none; background:none; padding:0 0 0 3px; font-size:13.5px; font-weight:600; color:var(--accent); cursor:pointer; font-family:inherit; transition:color .12s ease;">Log in</button>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- demo control (auxiliary) -->
+  <div style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:6px 8px 6px 13px; border:0.5px dashed var(--border2); border-radius:999px; background:var(--panel);">
+    <span style="font-size:10.5px; font-weight:600; letter-spacing:0.04em; color:var(--text4);">DEMO</span>
+    <div style="width:0.5px; height:15px; background:var(--border);"></div>
+    <button onClick="{{ toggleError }}" style="border:none; background:transparent; padding:5px 10px; border-radius:7px; cursor:pointer; font-size:12.5px; font-weight:500; color:var(--text2); font-family:inherit;">{{ errorToggleLabel }}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;accentColor&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#C96442&quot;, &quot;tsType&quot;: &quot;string&quot; }
+}">
+class Component extends DCLogic {
+  state = { mode: 'login', showError: false, theme: 'light' };
+
+  componentDidMount() { this.applyAccent(); }
+  componentDidUpdate() { this.applyAccent(); }
+  applyAccent() {
+    if (this._root) {
+      this._root.setAttribute('data-theme', this.state.theme);
+      if (this.props.accentColor) this._root.style.setProperty('--accent', this.props.accentColor);
+    }
+  }
+
+  renderVals() {
+    const login = this.state.mode === 'login';
+    return {
+      rootRef: (el) => { this._root = el; },
+      themeIsDark: this.state.theme === 'dark',
+      themeIsLight: this.state.theme === 'light',
+      toggleTheme: () => this.setState((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+      loginMode: login,
+      registerMode: !login,
+      showError: this.state.showError,
+      toggleMode: () => this.setState((s) => ({ mode: s.mode === 'login' ? 'register' : 'login' })),
+      toggleError: () => this.setState((s) => ({ showError: !s.showError })),
+      errorToggleLabel: this.state.showError ? 'Hide error' : 'Show error',
+    };
+  }
+}
+</script>
+</body>
+</html>

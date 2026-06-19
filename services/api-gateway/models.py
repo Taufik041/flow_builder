@@ -46,7 +46,7 @@ class Message(SQLModel, table=True):
     __tablename__ = "messages"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    session_id: UUID = Field(foreign_key="sessions.id")
+    session_id: UUID = Field(foreign_key="sessions.id", ondelete="CASCADE")
     role: MessageRole
     content: str
     created_at: datetime = Field(
@@ -59,7 +59,7 @@ class UploadedFile(SQLModel, table=True):
     __tablename__ = "uploaded_files"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    session_id: UUID = Field(foreign_key="sessions.id")
+    session_id: UUID = Field(foreign_key="sessions.id", ondelete="CASCADE")
     file_name: str
     file_path: str
     file_type: FileType
@@ -73,8 +73,8 @@ class GeneratedFile(SQLModel, table=True):
     __tablename__ = "generated_files"  # type: ignore
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    session_id: UUID = Field(foreign_key="sessions.id")
-    message_id: UUID = Field(foreign_key="messages.id")
+    session_id: UUID = Field(foreign_key="sessions.id", ondelete="CASCADE")
+    message_id: UUID = Field(foreign_key="messages.id", ondelete="CASCADE")
     file_type: GeneratedFileType
     file_path: str
     version: str = Field(default="7.3")
