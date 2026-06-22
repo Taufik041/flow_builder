@@ -41,6 +41,9 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   created_at: string;
+  // optional client-side only: blob URLs for images sent with this message.
+  // session-lifetime (not persisted); gone on reload.
+  images?: string[];
 }
 
 export interface GeneratedFile {

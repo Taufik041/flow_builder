@@ -20,15 +20,51 @@ MODELS = {
 }
 
 
+def _openai_user_content(text: str, images: list[dict] | None):
+    """OpenAI user content: plain string if no images, else a multimodal array."""
+    if not images:
+        return text
+    content: list[dict] = [{"type": "text", "text": text}]
+    for img in images:
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{img['media_type']};base64,{img['data']}"},
+            }
+        )
+    return content
+
+
+def _anthropic_user_content(text: str, images: list[dict] | None):
+    """Anthropic user content: plain string if no images, else a content-block array."""
+    if not images:
+        return text
+    content: list[dict] = []
+    for img in images:
+        content.append(
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": img["media_type"],
+                    "data": img["data"],
+                },
+            }
+        )
+    content.append({"type": "text", "text": text})
+    return content
+
+
 async def stream_generation(
     system_prompt: str,
     user_message: str,
     chat_history: list[dict],
     model: str = "gpt-4o",
+    images: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
     messages = [
         *chat_history,
-        {"role": "user", "content": user_message},
+        {"role": "user", "content": _anthropic_user_content(user_message, images)},
     ]
 
     if model.startswith("claude"):
@@ -48,6 +84,10 @@ async def stream_generation(
         if not openai_client:
             raise ValueError("OPENAI_API_KEY not set")
         model_id = MODELS.get(model, model)
+        messages = [
+            *chat_history,
+            {"role": "user", "content": _openai_user_content(user_message, images)},
+        ]
         stream = await openai_client.chat.completions.create(
             model=model_id,
             max_tokens=8000,

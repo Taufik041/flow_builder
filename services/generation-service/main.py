@@ -42,6 +42,7 @@ class GenerateRequest(BaseModel):
     aisensy_flow_id: str | None = None
     flow_name: str | None = None
     flow_category: str | None = None
+    images: list[dict] | None = None
 
 
 def _sse(obj: dict | str) -> str:
@@ -69,8 +70,6 @@ async def generate(body: GenerateRequest):
         chunks = rag_response.json().get("chunks", [])
 
     user_msg = body.user_message
-    if body.version == "7.1":
-        user_msg = f"[Use version 7.1] {user_msg}"
 
     json_system_prompt = build_system_prompt(chunks, phase="json")
     backend_system_prompt = build_system_prompt(chunks, phase="backend")
@@ -95,10 +94,11 @@ async def generate(body: GenerateRequest):
                     current_user_message,
                     body.chat_history,
                     body.model,
+                    images=body.images if attempt == 1 else None,
                 ):
                     attempt_text += token
                     yield _sse({"token": token})
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 yield _sse({"error": f"json generation failed: {e}"})
                 yield _sse("[DONE]")
                 return

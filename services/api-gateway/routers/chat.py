@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import re
@@ -10,7 +11,15 @@ from database import AsyncSessionLocal
 from database import get_session as get_db_session
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from models import GeneratedFile, GeneratedFileType, Message, MessageRole, Session
+from models import (
+    FileType,
+    GeneratedFile,
+    GeneratedFileType,
+    Message,
+    MessageRole,
+    Session,
+    UploadedFile,
+)
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio.session import AsyncSession as SQLModelAsyncSession
 from sqlmodel import select
@@ -21,6 +30,41 @@ GENERATION_SERVICE_URL = os.getenv(
     "GENERATION_SERVICE_URL", "http://generation-service:8003"
 )
 GENERATED_DIR = os.getenv("GENERATED_DIR", "/generated")
+
+# suffix -> base64 media type, for forwarding uploaded images to the (multimodal) model
+_IMAGE_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+}
+
+
+async def _load_session_images(
+    session_id: UUID, db: SQLModelAsyncSession
+) -> list[dict]:
+    """Read this session's uploaded images from disk and return a provider-neutral
+    list of {media_type, data(base64)} dicts for the generation request."""
+    result = await db.exec(
+        select(UploadedFile)
+        .where(UploadedFile.session_id == session_id)
+        .where(UploadedFile.file_type == FileType.image)
+        .order_by(UploadedFile.created_at.asc())
+    )
+    images: list[dict] = []
+    for rec in result.all():
+        path = Path(rec.file_path)
+        if not path.exists():
+            continue
+        suffix = path.suffix.lower()
+        media_type = _IMAGE_MEDIA_TYPES.get(suffix)
+        if not media_type:
+            continue
+        try:
+            data = base64.b64encode(path.read_bytes()).decode("ascii")
+        except Exception:  # noqa: BLE001
+            continue
+        images.append({"media_type": media_type, "data": data})
+    return images
 
 
 class ChatRequest(BaseModel):
@@ -76,10 +120,13 @@ async def chat(
         {"role": msg.role.value, "content": msg.content} for msg in history_result.all()
     ]
 
+    images = await _load_session_images(body.session_id, db)
+
     generate_payload = {
         "user_message": body.user_message,
         "extracted_text": body.extracted_text,
         "chat_history": chat_history,
+        "images": images,
         "version": body.version,
         "top_k": body.top_k,
         "model": body.model,

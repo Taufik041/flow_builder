@@ -15,6 +15,7 @@ import {
 } from "@/components/StreamingMessage";
 import { CodePane } from "@/components/CodePane";
 import { PreviewPane } from "@/components/PreviewPane";
+import { AssistantMarkdown } from "@/components/AssistantMarkdown";
 import { Toast } from "@/components/Toast";
 
 interface ToastItem { id: number; message: string; kind: "ok" | "err"; }
@@ -64,6 +65,12 @@ function ChatPage() {
     Record<string, { previewUrl?: string; endpointDefault?: string }>
   >({});
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const rightPanelRef = useRef<{
+    collapse: () => void;
+    expand: () => void;
+    isCollapsed: () => boolean;
+  } | null>(null);
   const [rightMode, setRightMode] = useState<"code" | "preview">("code");
   const [codeTab, setCodeTab] = useState<"json" | "python">("json");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -231,6 +238,10 @@ function ChatPage() {
       role: "user",
       content: text,
       created_at: new Date().toISOString(),
+      // carry sent images into the bubble (blob URLs, session-lifetime only)
+      images: attachments
+        .filter((a) => a.type === "image" && a.previewUrl)
+        .map((a) => a.previewUrl as string),
     };
     setMessages((prev) => [...prev, tempMsg]);
     setUserScrolledUp(false);
@@ -343,7 +354,22 @@ function ChatPage() {
               // BUG 1: only update visible state when user is still on this session;
               // if they switched away, the session-load effect will fetch on return.
               if (currentSessionIdRef.current === sessionId) {
-                setMessages(msgs);
+                // DB rows have no images; preserve the blob URLs from the optimistic
+                // user messages so sent images don't vanish when onDone refetches.
+                // (session-lifetime only — gone on full reload, as designed.)
+                setMessages((prev) => {
+                  const imagesByContent = new Map<string, string[]>();
+                  for (const m of prev) {
+                    if (m.role === "user" && m.images && m.images.length) {
+                      imagesByContent.set(m.content, m.images);
+                    }
+                  }
+                  return msgs.map((m) =>
+                    m.role === "user" && imagesByContent.has(m.content)
+                      ? { ...m, images: imagesByContent.get(m.content) }
+                      : m
+                  );
+                });
                 setGeneratedFiles(files);
                 setFlowState(flow);
               }
@@ -532,6 +558,19 @@ function ChatPage() {
                     {msg.role === "user" ? (
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <div style={{ maxWidth: "82%", background: "var(--bubble)", border: "0.5px solid rgba(61,58,52,0.05)", borderRadius: "18px 18px 5px 18px", padding: "12px 16px", fontSize: 14.5, lineHeight: 1.55, color: "var(--text)" }}>
+                          {msg.images && msg.images.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: msg.content ? 8 : 0 }}>
+                              {msg.images.map((src, i) => (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  key={i}
+                                  src={src}
+                                  alt=""
+                                  style={{ maxWidth: 180, maxHeight: 180, borderRadius: 10, objectFit: "cover", display: "block" }}
+                                />
+                              ))}
+                            </div>
+                          )}
                           {msg.content}
                         </div>
                       </div>
@@ -544,8 +583,8 @@ function ChatPage() {
                           </svg>
                         </div>
                         <div style={{ flex: "1 1 0", minWidth: 0 }}>
-                          <div style={{ fontSize: 14.5, lineHeight: 1.62, color: "var(--text)", marginBottom: 8, whiteSpace: "pre-wrap" }}>
-                            {msg.content}
+                          <div style={{ marginBottom: 8 }}>
+                            <AssistantMarkdown content={msg.content} />
                           </div>
                           {/* show file chips for completed assistant messages */}
                           {generatedFiles.length > 0 && msg.id === messages.filter((m) => m.role === "assistant").slice(-1)[0]?.id && (
@@ -609,7 +648,15 @@ function ChatPage() {
         </PanelResizeHandle>
 
         {/* Right panel */}
-        <Panel defaultSize={40} minSize={22}>
+        <Panel
+          defaultSize={40}
+          minSize={22}
+          collapsible
+          collapsedSize={0}
+          ref={rightPanelRef}
+          onCollapse={() => setRightCollapsed(true)}
+          onExpand={() => setRightCollapsed(false)}
+        >
           <aside style={{ width: "100%", display: "flex", flexDirection: "column", background: "var(--panel)", borderLeft: "0.5px solid var(--border)", height: "100%", minWidth: 0, overflow: "hidden" }}>
 
             {/* top strip */}
@@ -674,6 +721,16 @@ function ChatPage() {
                     <path d="M7 10l5 5 5-5" /><path d="M12 15V3" />
                   </svg>
                 </button>
+                <button
+                  className="icon-btn"
+                  onClick={() => rightPanelRef.current?.collapse()}
+                  title="Collapse panel"
+                  style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "transparent", borderRadius: 8, cursor: "pointer", color: "var(--text3)" }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -709,6 +766,22 @@ function ChatPage() {
           </aside>
         </Panel>
       </PanelGroup>
+
+      {/* Expand rail — shown only when the right panel is collapsed */}
+      {rightCollapsed && (
+        <div style={{ width: 44, flex: "0 0 auto", height: "100%", borderLeft: "0.5px solid var(--border)", background: "var(--panel)", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 11 }}>
+          <button
+            className="icon-btn"
+            onClick={() => rightPanelRef.current?.expand()}
+            title="Open panel"
+            style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "transparent", borderRadius: 8, cursor: "pointer", color: "var(--text3)" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Toasts */}
       {toasts.map((t) => (
